@@ -18,7 +18,7 @@ import {
   AlertCircle,
 } from "lucide-react";
 
-interface Document {
+interface DocumentItem {
   id: string;
   title: string;
   content: string;
@@ -31,48 +31,37 @@ interface Document {
 export default function CollaboratePage() {
   const { user, loading } = useAuth();
   const router = useRouter();
-  const [documents, setDocuments] = useState<Document[]>([]);
-  const [selectedDocument, setSelectedDocument] = useState<Document | null>(null);
+  const [documents, setDocuments] = useState<DocumentItem[]>([]);
+  const [selectedDocument, setSelectedDocument] = useState<DocumentItem | null>(null);
   const [showCreateForm, setShowCreateForm] = useState(false);
   const [newDocumentTitle, setNewDocumentTitle] = useState("");
   const [isCreating, setIsCreating] = useState(false);
   const [copiedId, setCopiedId] = useState<string | null>(null);
   const [error, setError] = useState("");
 
-  // Mock documents for demo
+  // Load documents from API
   useEffect(() => {
-    if (user) {
-      const mockDocs: Document[] = [
-        {
-          id: "doc-1",
-          title: "Project Requirements",
-          content: "<h1>Project Requirements</h1><p>This is a collaborative document for our team project.</p>",
-          createdAt: new Date("2024-01-15"),
-          updatedAt: new Date("2024-01-20"),
-          isPublic: false,
-          collaborators: 3,
-        },
-        {
-          id: "doc-2",
-          title: "Meeting Notes",
-          content: "<h1>Weekly Meeting Notes</h1><ul><li>Discuss project timeline</li><li>Review deliverables</li></ul>",
-          createdAt: new Date("2024-01-10"),
-          updatedAt: new Date("2024-01-18"),
-          isPublic: true,
-          collaborators: 5,
-        },
-        {
-          id: "doc-3",
-          title: "Technical Specifications",
-          content: "<h1>Technical Specs</h1><p>Detailed technical requirements and architecture decisions.</p>",
-          createdAt: new Date("2024-01-05"),
-          updatedAt: new Date("2024-01-16"),
-          isPublic: false,
-          collaborators: 2,
-        },
-      ];
-      setDocuments(mockDocs);
-    }
+    const load = async () => {
+      if (!user) return;
+      try {
+        const res = await fetch('/api/documents', { cache: 'no-store' });
+        if (!res.ok) throw new Error('Failed to load documents');
+        const data = await res.json();
+        const items: DocumentItem[] = (data.documents || []).map((d: any) => ({
+          id: d.id,
+          title: d.title,
+          content: d.content || '',
+          createdAt: new Date(d.createdAt),
+          updatedAt: new Date(d.updatedAt),
+          isPublic: d.visibility === 'public',
+          collaborators: 1,
+        }));
+        setDocuments(items);
+      } catch (e) {
+        console.error(e);
+      }
+    };
+    load();
   }, [user]);
 
   // Redirect if not authenticated
@@ -92,19 +81,26 @@ export default function CollaboratePage() {
     setError("");
 
     try {
-      // Simulate API call
-      await new Promise(resolve => setTimeout(resolve, 1000));
-
-      const newDoc: Document = {
-        id: `doc-${Date.now()}`,
-        title: newDocumentTitle,
-        content: `<h1>${newDocumentTitle}</h1><p>Start collaborating on this document!</p>`,
-        createdAt: new Date(),
-        updatedAt: new Date(),
-        isPublic: false,
+      const res = await fetch('/api/documents', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          title: newDocumentTitle,
+          content: `<h1>${newDocumentTitle}</h1><p>Start collaborating on this document!</p>`,
+        }),
+      });
+      if (!res.ok) throw new Error('Failed');
+      const data = await res.json();
+      const d = data.document;
+      const newDoc: DocumentItem = {
+        id: d.id,
+        title: d.title,
+        content: d.content || '',
+        createdAt: new Date(d.createdAt),
+        updatedAt: new Date(d.updatedAt),
+        isPublic: d.visibility === 'public',
         collaborators: 1,
       };
-
       setDocuments(prev => [newDoc, ...prev]);
       setSelectedDocument(newDoc);
       setNewDocumentTitle("");
@@ -140,19 +136,15 @@ export default function CollaboratePage() {
     if (!selectedDocument) return;
 
     try {
-      // Simulate API call
-      await new Promise(resolve => setTimeout(resolve, 500));
-
-      // Update local state
-      setDocuments(prev => 
-        prev.map(doc => 
-          doc.id === selectedDocument.id 
-            ? { ...doc, content, updatedAt: new Date() }
-            : doc
-        )
-      );
-
-      setSelectedDocument(prev => prev ? { ...prev, content, updatedAt: new Date() } : null);
+      const res = await fetch(`/api/documents/${selectedDocument.id}` , {
+        method: 'PATCH',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ content }),
+      });
+      if (!res.ok) throw new Error('Failed to save');
+      const updatedAt = new Date();
+      setDocuments(prev => prev.map(doc => doc.id === selectedDocument.id ? { ...doc, content, updatedAt } : doc));
+      setSelectedDocument(prev => prev ? { ...prev, content, updatedAt } : null);
     } catch (error) {
       console.error("Failed to save document:", error);
     }

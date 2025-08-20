@@ -1,4 +1,4 @@
-import type { Metadata } from "next";
+import type { Metadata, Viewport } from "next";
 import { Inter } from "next/font/google";
 import "./globals.css";
 import { AuthProvider } from "@/lib/auth-context";
@@ -12,7 +12,11 @@ export const metadata: Metadata = {
     "Advanced document management platform with real-time collaboration, PDF processing, and team workflows.",
   keywords: "document management, PDF tools, collaboration, team workspace",
   authors: [{ name: "DocuForge Team" }],
-  viewport: "width=device-width, initial-scale=1",
+};
+
+export const viewport: Viewport = {
+  width: "device-width",
+  initialScale: 1,
 };
 
 export default function RootLayout({

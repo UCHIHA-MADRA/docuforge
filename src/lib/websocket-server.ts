@@ -1,5 +1,7 @@
 import http from "http";
 import WebSocket, { WebSocketServer } from "ws";
+// eslint-disable-next-line @typescript-eslint/ban-ts-comment
+// @ts-ignore
 import * as Y from "yjs";
 import * as encoding from "lib0/encoding";
 import * as decoding from "lib0/decoding";

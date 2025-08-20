@@ -1,5 +1,4 @@
 import { NextRequest, NextResponse } from "next/server";
-import { PDFDocument } from "pdf-lib";
 
 // Constants for limits
 const MAX_FILE_SIZE = 50 * 1024 * 1024; // 50MB
@@ -103,6 +102,7 @@ export async function POST(request: NextRequest) {
     }
 
     // Create a new PDF document
+    const { PDFDocument }: any = await import("pdf-lib");
     const mergedPdf = await PDFDocument.create();
     let totalPages = 0;
     const processingErrors: string[] = [];
@@ -131,7 +131,7 @@ export async function POST(request: NextRequest) {
 
         // Copy all pages from the current PDF
         const pages = await mergedPdf.copyPages(pdf, pdf.getPageIndices());
-        pages.forEach((page) => mergedPdf.addPage(page));
+        pages.forEach((page: any) => mergedPdf.addPage(page));
         
         totalPages += pageCount;
       } catch (error) {
@@ -201,12 +201,11 @@ export async function POST(request: NextRequest) {
     }
 
     // Create response with merged PDF
-    const response = new NextResponse(Buffer.from(mergedPdfBytes), {
+    const response = new NextResponse(mergedPdfBytes as any, {
       status: 200,
       headers: {
         "Content-Type": "application/pdf",
         "Content-Disposition": 'attachment; filename="merged-document.pdf"',
-        "Content-Length": mergedPdfBytes.length.toString(),
         "X-Processed-Files": validFiles.length.toString(),
         "X-Total-Pages": totalPages.toString(),
         "X-Total-Size": totalSize.toString(),

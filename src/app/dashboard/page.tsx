@@ -19,7 +19,7 @@ import {
   Users,
 } from "lucide-react";
 
-interface Document {
+interface DocumentItem {
   id: string;
   title: string;
   status: string;
@@ -40,7 +40,7 @@ export default function DashboardPage() {
   const router = useRouter();
   const [viewMode, setViewMode] = useState<"grid" | "list">("grid");
   const [searchQuery, setSearchQuery] = useState("");
-  const [documents, setDocuments] = useState<Document[]>([]);
+  const [documents, setDocuments] = useState<DocumentItem[]>([]);
   const [files, setFiles] = useState<FileItem[]>([]);
 
   useEffect(() => {
@@ -50,48 +50,38 @@ export default function DashboardPage() {
   }, [user, loading, router]);
 
   useEffect(() => {
-    // Mock data - replace with actual API calls
-    setDocuments([
-      {
-        id: "1",
-        title: "Project Proposal 2024",
-        status: "draft",
-        updatedAt: "2024-01-15",
-        author: "John Doe",
-      },
-      {
-        id: "2",
-        title: "Team Meeting Notes",
-        status: "published",
-        updatedAt: "2024-01-14",
-        author: "Jane Smith",
-      },
-      {
-        id: "3",
-        title: "Technical Specifications",
-        status: "draft",
-        updatedAt: "2024-01-13",
-        author: "Mike Johnson",
-      },
-    ]);
+    const load = async () => {
+      try {
+        const res = await fetch('/api/documents', { cache: 'no-store' });
+        if (res.ok) {
+          const data = await res.json();
+          const mapped: DocumentItem[] = (data.documents || []).map((d: any) => ({
+            id: d.id,
+            title: d.title,
+            status: d.status,
+            updatedAt: new Date(d.updatedAt).toLocaleDateString(),
+            author: user?.name || user?.email || 'You',
+          }));
+          setDocuments(mapped);
+        }
+        const fres = await fetch('/api/files', { cache: 'no-store' });
+        if (fres.ok) {
+          const d = await fres.json();
+          setFiles((d.files || []).map((f: any) => ({
+            id: f.id,
+            name: f.originalName || f.name,
+            size: f.size,
+            type: f.mimeType,
+            uploadedAt: new Date(f.uploadedAt).toLocaleDateString(),
+          })));
+        }
+      } catch (e) {
+        // ignore for now
+      }
+    };
+    load();
 
-    setFiles([
-      {
-        id: "1",
-        name: "presentation.pdf",
-        size: 2048576,
-        type: "application/pdf",
-        uploadedAt: "2024-01-15",
-      },
-      {
-        id: "2",
-        name: "image.jpg",
-        size: 1048576,
-        type: "image/jpeg",
-        uploadedAt: "2024-01-14",
-      },
-    ]);
-  }, []);
+  }, [user]);
 
   const formatFileSize = (bytes: number) => {
     if (bytes === 0) return "0 Bytes";

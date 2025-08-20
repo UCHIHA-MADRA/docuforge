@@ -35,6 +35,9 @@ model User {
   // User preferences
   preferences   UserPreferences?
 
+  // Back-relations
+  documentCollaborations DocumentCollaborator[]
+
   @@map("users")
 }
 
@@ -97,7 +100,6 @@ model Document {
   organization   Organization? @relation(fields: [organizationId], references: [id])
   
   collaborators DocumentCollaborator[]
-  shares        Share[]
   comments      Comment[]
   versions      DocumentVersion[]
   tags          Tag[]
@@ -169,7 +171,6 @@ model File {
   organizationId String?
   organization   Organization? @relation(fields: [organizationId], references: [id])
   
-  shares      Share[]
   tags        Tag[]
 
   @@map("files")

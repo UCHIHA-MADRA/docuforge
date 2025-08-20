@@ -1,7 +1,8 @@
 import { createServer } from 'http';
 import { parse } from 'url';
 import next from 'next';
-import { initWebSocketServer } from './websocket-server';
+// Note: y-websocket collab server runs on its own port (3001) via src/lib/collaboration-server.ts
+// We keep the HTTP server focused on Next.js; real-time editor connects to ws://localhost:3001
 
 const dev = process.env.NODE_ENV !== 'production';
 const hostname = 'localhost';
@@ -29,13 +30,13 @@ export async function initServer() {
       }
     });
 
-    // Initialize WebSocket server
-    const wss = initWebSocketServer(server);
-    
+    // Real-time collaboration runs via dedicated y-websocket server (port 3001)
+    // This HTTP server only handles Next.js
+
     // Start listening
     server.listen(port, () => {
       console.log(`> Ready on http://${hostname}:${port}`);
-      console.log(`> WebSocket server initialized`);
+      console.log(`> Collaboration server should be started separately on ws://localhost:3001`);
     });
 
     // Handle server shutdown
@@ -50,7 +51,7 @@ export async function initServer() {
     process.on('SIGINT', handleShutdown);
     process.on('SIGTERM', handleShutdown);
 
-    return { server, wss };
+    return { server };
   } catch (err) {
     console.error('Error starting server:', err);
     process.exit(1);

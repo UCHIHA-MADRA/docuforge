@@ -43,6 +43,15 @@ export default function PDFToolsPage() {
   const [isDragActive, setIsDragActive] = useState(false);
   const [uploadProgress, setUploadProgress] = useState(0);
   const abortControllerRef = useRef<AbortController | null>(null);
+  const [splitFile, setSplitFile] = useState<File | null>(null);
+  const [splitPages, setSplitPages] = useState<string>("");
+  const [isSplitting, setIsSplitting] = useState(false);
+  const [imgFile, setImgFile] = useState<File | null>(null);
+  const [imgWidth, setImgWidth] = useState<string | undefined>(undefined);
+  const [imgHeight, setImgHeight] = useState<string | undefined>(undefined);
+  const [imgFit, setImgFit] = useState<string | undefined>(undefined);
+  const [imgFormat, setImgFormat] = useState<string | undefined>(undefined);
+  const [imgQuality, setImgQuality] = useState<string | undefined>(undefined);
 
   // Edge Case 1: File validation with detailed checks
   const validateFile = (file: File): { isValid: boolean; error?: string } => {
@@ -631,35 +640,182 @@ export default function PDFToolsPage() {
 
         {/* Additional Tools Info */}
         <div className="bg-white rounded-lg shadow-lg border border-gray-200 p-6">
-          <h3 className="text-lg font-semibold text-gray-900 mb-4">
-            More PDF Tools Coming Soon
-          </h3>
-          <div className="grid md:grid-cols-2 gap-4">
-            <div className="p-4 border border-gray-200 rounded-lg">
-              <h4 className="font-medium text-gray-900 mb-2">Split PDF</h4>
-              <p className="text-sm text-gray-600">
-                Split PDFs into individual pages or custom ranges
-              </p>
+          <h3 className="text-lg font-semibold text-gray-900 mb-4">Split PDF</h3>
+          <div className="grid gap-4">
+            <div>
+              <label className="block text-sm font-medium text-gray-700 mb-2">PDF File</label>
+              <input
+                type="file"
+                accept="application/pdf"
+                onChange={(e) => setSplitFile(e.target.files?.[0] || null)}
+                className="block w-full text-sm text-gray-900 border border-gray-300 rounded-lg cursor-pointer bg-gray-50 focus:outline-none"
+              />
             </div>
-            <div className="p-4 border border-gray-200 rounded-lg">
-              <h4 className="font-medium text-gray-900 mb-2">Compress PDF</h4>
-              <p className="text-sm text-gray-600">
-                Reduce file size while maintaining quality
-              </p>
+            <div>
+              <label className="block text-sm font-medium text-gray-700 mb-2">Pages (e.g., 1-3,5,7-9)</label>
+              <input
+                type="text"
+                value={splitPages}
+                onChange={(e) => setSplitPages(e.target.value)}
+                placeholder="Pages to extract"
+                className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+              />
             </div>
-            <div className="p-4 border border-gray-200 rounded-lg">
-              <h4 className="font-medium text-gray-900 mb-2">Add Watermarks</h4>
-              <p className="text-sm text-gray-600">
-                Add text or image watermarks to your PDFs
-              </p>
+            <div>
+              <Button
+                onClick={async () => {
+                  if (!splitFile || !splitPages.trim()) {
+                    setError('Select a PDF and specify pages to extract');
+                    return;
+                  }
+                  setError('');
+                  setIsSplitting(true);
+                  try {
+                    const fd = new FormData();
+                    fd.append('file', splitFile);
+                    fd.append('pages', splitPages);
+                    const res = await fetch('/api/pdf/split', { method: 'POST', body: fd });
+                    if (!res.ok) {
+                      const j = await res.json().catch(() => ({}));
+                      throw new Error(j.error || 'Split failed');
+                    }
+                    const blob = await res.blob();
+                    const url = window.URL.createObjectURL(blob);
+                    const a = document.createElement('a');
+                    a.href = url;
+                    a.download = 'extracted-pages.pdf';
+                    document.body.appendChild(a);
+                    a.click();
+                    window.URL.revokeObjectURL(url);
+                    document.body.removeChild(a);
+                    setSuccess('Split successful. Download started.');
+                  } catch (e: any) {
+                    setError(e?.message || 'Split failed');
+                  } finally {
+                    setIsSplitting(false);
+                  }
+                }}
+                disabled={isSplitting}
+              >
+                {isSplitting ? 'Splitting...' : 'Split'}
+              </Button>
             </div>
-            <div className="p-4 border border-gray-200 rounded-lg">
-              <h4 className="font-medium text-gray-900 mb-2">
-                Convert Formats
-              </h4>
-              <p className="text-sm text-gray-600">
-                Convert between PDF, Word, and other formats
-              </p>
+          </div>
+        </div>
+        <div className="bg-white rounded-lg shadow-lg border border-gray-200 p-6 mt-8">
+          <h3 className="text-lg font-semibold text-gray-900 mb-4">Image Resize</h3>
+          <div className="grid gap-4">
+            <div>
+              <label className="block text-sm font-medium text-gray-700 mb-2">Image File</label>
+              <input
+                type="file"
+                accept="image/jpeg,image/png,image/webp,image/avif"
+                onChange={(e) => setImgFile(e.target.files?.[0] || null)}
+                className="block w-full text-sm text-gray-900 border border-gray-300 rounded-lg cursor-pointer bg-gray-50 focus:outline-none"
+              />
+            </div>
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-2">Width</label>
+                <input
+                  type="number"
+                  value={imgWidth}
+                  onChange={(e) => setImgWidth(e.target.value)}
+                  placeholder="e.g. 800"
+                  className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                />
+              </div>
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-2">Height</label>
+                <input
+                  type="number"
+                  value={imgHeight}
+                  onChange={(e) => setImgHeight(e.target.value)}
+                  placeholder="optional"
+                  className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                />
+              </div>
+            </div>
+            <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-2">Fit</label>
+                <select
+                  value={imgFit}
+                  onChange={(e) => setImgFit(e.target.value)}
+                  className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                >
+                  <option value="inside">inside</option>
+                  <option value="cover">cover</option>
+                  <option value="contain">contain</option>
+                  <option value="fill">fill</option>
+                  <option value="outside">outside</option>
+                </select>
+              </div>
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-2">Format</label>
+                <select
+                  value={imgFormat}
+                  onChange={(e) => setImgFormat(e.target.value)}
+                  className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                >
+                  <option value="">keep</option>
+                  <option value="jpeg">jpeg</option>
+                  <option value="png">png</option>
+                  <option value="webp">webp</option>
+                  <option value="avif">avif</option>
+                </select>
+              </div>
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-2">Quality</label>
+                <input
+                  type="number"
+                  value={imgQuality}
+                  onChange={(e) => setImgQuality(e.target.value)}
+                  min={1}
+                  max={100}
+                  className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                />
+              </div>
+            </div>
+            <div>
+              <Button
+                onClick={async () => {
+                  if (!imgFile || (!imgWidth && !imgHeight)) {
+                    setError('Select an image and provide width or height');
+                    return;
+                  }
+                  setError('');
+                  setSuccess('');
+                  try {
+                    const fd = new FormData();
+                    fd.append('file', imgFile);
+                    if (imgWidth) fd.append('width', imgWidth);
+                    if (imgHeight) fd.append('height', imgHeight);
+                    if (imgFit) fd.append('fit', imgFit);
+                    if (imgFormat) fd.append('format', imgFormat);
+                    if (imgQuality) fd.append('quality', imgQuality);
+                    const res = await fetch('/api/images/resize', { method: 'POST', body: fd });
+                    if (!res.ok) {
+                      const j = await res.json().catch(() => ({}));
+                      throw new Error(j.error || 'Resize failed');
+                    }
+                    const blob = await res.blob();
+                    const url = window.URL.createObjectURL(blob);
+                    const a = document.createElement('a');
+                    a.href = url;
+                    a.download = `resized.${imgFormat || (imgFile.type.split('/')[1] || 'img')}`;
+                    document.body.appendChild(a);
+                    a.click();
+                    window.URL.revokeObjectURL(url);
+                    document.body.removeChild(a);
+                    setSuccess('Image resized. Download started.');
+                  } catch (e: any) {
+                    setError(e?.message || 'Resize failed');
+                  }
+                }}
+              >
+                Resize
+              </Button>
             </div>
           </div>
         </div>
