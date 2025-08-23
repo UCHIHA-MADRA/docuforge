@@ -1,7 +1,8 @@
-import NextAuth from "next-auth";
+import NextAuth, { NextAuthOptions } from "next-auth";
 import { PrismaAdapter } from "@next-auth/prisma-adapter";
 import GoogleProvider from "next-auth/providers/google";
 import { prisma } from "@/lib/prisma";
+import { auditHooks } from "@/middleware/audit";
 
 import type { Session } from "next-auth";
 
@@ -16,7 +17,7 @@ declare module "next-auth" {
   }
 }
 
-const handler = NextAuth({
+export const authOptions: NextAuthOptions = {
   adapter: PrismaAdapter(prisma),
   providers: [
     GoogleProvider({
@@ -40,10 +41,64 @@ const handler = NextAuth({
       }
       return token;
     },
+    async signIn({ user, account, profile }) {
+      try {
+        // Log successful sign-in attempt
+        await auditHooks.logLoginAttempt(
+          user.email || 'unknown',
+          'unknown', // IP address not available in callback
+          'unknown', // User agent not available in callback
+          true,
+          user.id
+        );
+      } catch (error) {
+        console.error('Failed to log sign-in audit event:', error);
+      }
+      return true;
+    },
+  },
+  events: {
+    async signIn({ user, account, profile, isNewUser }) {
+      try {
+        if (isNewUser) {
+          // Log new user registration
+          await auditHooks.logLoginAttempt(
+            user.email || 'unknown',
+            'unknown',
+            'unknown',
+            true,
+            user.id
+          );
+        }
+      } catch (error) {
+        console.error('Failed to log sign-in event audit:', error);
+      }
+    },
+    async signOut({ session, token }) {
+      try {
+        // Log sign-out event
+        const userId = session?.user?.id || token?.sub;
+        const userEmail = session?.user?.email || token?.email;
+        
+        if (userId && userEmail) {
+          await auditHooks.logLoginAttempt(
+            userEmail,
+            'unknown',
+            'unknown',
+            true,
+            userId
+          );
+        }
+      } catch (error) {
+        console.error('Failed to log sign-out audit event:', error);
+      }
+    },
   },
   pages: {
     signIn: "/auth/signin",
   },
-});
+};
+
+const handler = NextAuth(authOptions);
 
 export { handler as GET, handler as POST };

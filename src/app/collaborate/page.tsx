@@ -5,18 +5,19 @@ import { useAuth } from "@/lib/auth-context";
 import { useRouter } from "next/navigation";
 import CollaborativeEditor from "@/components/CollaborativeEditor";
 import { Button } from "@/components/ui/button";
-import { 
-  Users, 
-  FileText, 
-  Plus, 
-  Settings, 
-  Share2, 
+import {
+  Users,
+  FileText,
+  Plus,
+  Settings,
+  Share2,
   Eye,
   EyeOff,
   Copy,
   CheckCircle,
   AlertCircle,
 } from "lucide-react";
+import { auditHooks } from '@/middleware/audit';
 
 interface DocumentItem {
   id: string;
@@ -92,6 +93,7 @@ export default function CollaboratePage() {
       if (!res.ok) throw new Error('Failed');
       const data = await res.json();
       const d = data.document;
+      await auditHooks.logDocumentCreation(user.id, d.id, d.title);
       const newDoc: DocumentItem = {
         id: d.id,
         title: d.title,
@@ -142,11 +144,28 @@ export default function CollaboratePage() {
         body: JSON.stringify({ content }),
       });
       if (!res.ok) throw new Error('Failed to save');
+      await auditHooks.logDocumentEdit(user.id, selectedDocument.id, selectedDocument.title, { content_length: content.length });
       const updatedAt = new Date();
       setDocuments(prev => prev.map(doc => doc.id === selectedDocument.id ? { ...doc, content, updatedAt } : doc));
       setSelectedDocument(prev => prev ? { ...prev, content, updatedAt } : null);
     } catch (error) {
       console.error("Failed to save document:", error);
+    }
+  };
+
+  const deleteDocument = async (documentId: string) => {
+    try {
+      const res = await fetch(`/api/documents/${documentId}`, {
+        method: 'DELETE',
+      });
+      if (!res.ok) throw new Error('Failed to delete');
+      await auditHooks.logDocumentDelete(user.id, documentId);
+      setDocuments(prev => prev.filter(doc => doc.id !== documentId));
+      if (selectedDocument && selectedDocument.id === documentId) {
+        setSelectedDocument(null);
+      }
+    } catch (error) {
+      console.error("Failed to delete document:", error);
     }
   };
 

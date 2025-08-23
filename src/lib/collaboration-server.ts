@@ -23,7 +23,7 @@ class CollaborationServer {
           return;
         }
 
-        setupWSConnection(ws as any, req as any, { docName });
+        setupWSConnection(ws as unknown as WebSocket, req as unknown as import('http').IncomingMessage, { docName });
       } catch (err) {
         console.error("Error establishing y-websocket connection:", err);
         try { ws.close(); } catch {}
@@ -31,7 +31,7 @@ class CollaborationServer {
     });
 
     this.wss.on("listening", () => {
-      console.log(`y-websocket collaboration server listening on ws://localhost:${(this.wss.address() as any).port}`);
+      console.log(`y-websocket collaboration server listening on ws://localhost:${(this.wss.address() as { port: number }).port}`);
     });
 
     this.wss.on("error", (err) => {

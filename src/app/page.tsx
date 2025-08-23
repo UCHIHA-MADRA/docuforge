@@ -21,11 +21,11 @@ export default function HomePage() {
               <span className="text-xl font-bold text-gray-900">DocuForge</span>
             </div>
             <div className="flex items-center space-x-4">
-              <Link href="/tools">
-                <Button variant="ghost">PDF Tools</Button>
+              <Link href="/editor-demo">
+                <Button variant="ghost">Editor Demo</Button>
               </Link>
-              <Link href="/collaborate">
-                <Button variant="ghost">Collaborate</Button>
+              <Link href="/collaborative-demo">
+                <Button variant="ghost">Collaborative Demo</Button>
               </Link>
               <Link href="/auth/signin">
                 <Button variant="ghost">Sign In</Button>

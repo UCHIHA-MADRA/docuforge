@@ -1,0 +1,187 @@
+/* Editor Styles */
+
+/* Collaboration cursor styles */
+.collaboration-cursor {
+  position: relative;
+  margin-left: -1px;
+  margin-right: -1px;
+  border-left: 1px solid;
+  border-right: 1px solid;
+  border-color: #0d0d0d;
+  word-break: normal;
+  pointer-events: none;
+}
+
+.collaboration-cursor-label {
+  position: absolute;
+  top: -1.4em;
+  left: -1px;
+  font-size: 12px;
+  font-weight: 600;
+  line-height: normal;
+  user-select: none;
+  white-space: nowrap;
+  color: white;
+  padding: 0.1rem 0.3rem;
+  border-radius: 3px 3px 3px 0;
+  z-index: 50;
+}
+
+/* Comment highlight styles */
+.comment-highlight {
+  background-color: rgba(255, 212, 0, 0.2);
+  cursor: pointer;
+  border-bottom: 2px solid rgba(255, 212, 0, 0.5);
+}
+
+.comment-highlight:hover {
+  background-color: rgba(255, 212, 0, 0.3);
+}
+
+/* Mention styles */
+.mention {
+  background-color: rgba(0, 122, 255, 0.1);
+  border-radius: 4px;
+  padding: 0.1rem 0.3rem;
+  color: #0066cc;
+  font-weight: 500;
+  white-space: nowrap;
+}
+
+.mention-suggestion-list {
+  background: white;
+  border-radius: 0.5rem;
+  box-shadow: 0 0 0 1px rgba(0, 0, 0, 0.05), 0 10px 20px rgba(0, 0, 0, 0.1);
+  padding: 0.5rem;
+  overflow-y: auto;
+  max-height: 20rem;
+  font-size: 0.875rem;
+}
+
+.mention-suggestion-item {
+  display: flex;
+  align-items: center;
+  width: 100%;
+  padding: 0.5rem;
+  border-radius: 0.25rem;
+  cursor: pointer;
+  text-align: left;
+}
+
+.mention-suggestion-item:hover {
+  background-color: rgba(0, 0, 0, 0.05);
+}
+
+.mention-suggestion-avatar {
+  width: 1.5rem;
+  height: 1.5rem;
+  border-radius: 50%;
+  margin-right: 0.5rem;
+  object-fit: cover;
+}
+
+.mention-suggestion-no-results {
+  padding: 0.5rem;
+  color: #666;
+  font-style: italic;
+}
+
+/* Rich text editor styles */
+.rich-text-editor {
+  border: 1px solid #e2e8f0;
+  border-radius: 0.5rem;
+  overflow: hidden;
+}
+
+.rich-text-editor .ProseMirror {
+  padding: 1rem;
+  min-height: 200px;
+  outline: none;
+}
+
+.rich-text-editor .ProseMirror p {
+  margin-bottom: 0.75rem;
+}
+
+.rich-text-editor .ProseMirror h1 {
+  font-size: 1.875rem;
+  font-weight: 700;
+  margin-top: 1.5rem;
+  margin-bottom: 1rem;
+}
+
+.rich-text-editor .ProseMirror h2 {
+  font-size: 1.5rem;
+  font-weight: 700;
+  margin-top: 1.25rem;
+  margin-bottom: 0.75rem;
+}
+
+.rich-text-editor .ProseMirror h3 {
+  font-size: 1.25rem;
+  font-weight: 600;
+  margin-top: 1rem;
+  margin-bottom: 0.5rem;
+}
+
+.rich-text-editor .ProseMirror ul,
+.rich-text-editor .ProseMirror ol {
+  padding-left: 1.5rem;
+  margin-bottom: 0.75rem;
+}
+
+.rich-text-editor .ProseMirror ul li {
+  list-style-type: disc;
+}
+
+.rich-text-editor .ProseMirror ol li {
+  list-style-type: decimal;
+}
+
+.rich-text-editor .ProseMirror blockquote {
+  border-left: 3px solid #e2e8f0;
+  padding-left: 1rem;
+  color: #4a5568;
+  font-style: italic;
+  margin: 1rem 0;
+}
+
+.rich-text-editor .ProseMirror pre {
+  background-color: #f7fafc;
+  border-radius: 0.25rem;
+  padding: 0.75rem;
+  font-family: monospace;
+  overflow-x: auto;
+  margin: 1rem 0;
+}
+
+.rich-text-editor .ProseMirror code {
+  background-color: #f7fafc;
+  border-radius: 0.25rem;
+  padding: 0.125rem 0.25rem;
+  font-family: monospace;
+}
+
+.rich-text-editor .ProseMirror p.is-editor-empty:first-child::before {
+  content: attr(data-placeholder);
+  float: left;
+  color: #a0aec0;
+  pointer-events: none;
+  height: 0;
+}
+
+.rich-text-editor .ProseMirror .text-left {
+  text-align: left;
+}
+
+.rich-text-editor .ProseMirror .text-center {
+  text-align: center;
+}
+
+.rich-text-editor .ProseMirror .text-right {
+  text-align: right;
+}
+
+.rich-text-editor .ProseMirror .text-justify {
+  text-align: justify;
+}

@@ -1,6 +1,3 @@
-// This is your Prisma schema file,
-// learn more about it in the docs: https://pris.ly/d/prisma-schema
-
 generator client {
   provider = "prisma-client-js"
 }
@@ -10,38 +7,303 @@ datasource db {
   url      = env("DATABASE_URL")
 }
 
-// User model with authentication and profile information
+// Enums
+enum UserRole {
+  USER
+  ADMIN
+  SUPER_ADMIN
+}
+
+enum SubscriptionTier {
+  FREE
+  BASIC
+  PRO
+  ENTERPRISE
+}
+
+enum SubscriptionStatus {
+  ACTIVE
+  CANCELED
+  PAST_DUE
+  UNPAID
+  INCOMPLETE
+}
+
+enum DocumentStatus {
+  DRAFT
+  PUBLISHED
+  ARCHIVED
+  DELETED
+}
+
+enum Visibility {
+  PRIVATE
+  PUBLIC
+  ORGANIZATION
+}
+
+enum CollaborationRole {
+  VIEWER
+  COMMENTER
+  EDITOR
+  ADMIN
+}
+
+enum OrganizationRole {
+  MEMBER
+  MODERATOR
+  ADMIN
+  OWNER
+}
+
+enum OrganizationSize {
+  STARTUP
+  SMALL
+  MEDIUM
+  LARGE
+  ENTERPRISE
+}
+
+enum EncryptionPolicy {
+  OPTIONAL
+  REQUIRED
+  ENFORCED
+}
+
+enum MemberStatus {
+  PENDING
+  ACTIVE
+  SUSPENDED
+  INACTIVE
+}
+
+enum FileCategory {
+  DOCUMENT
+  IMAGE
+  AUDIO
+  VIDEO
+  ARCHIVE
+  CODE
+  OTHER
+}
+
+enum ProcessingStatus {
+  PENDING
+  PROCESSING
+  COMPLETED
+  FAILED
+  CANCELLED
+}
+
+enum ShareType {
+  LINK
+  EMAIL
+  USER
+  ORGANIZATION
+}
+
+enum ResourceType {
+  DOCUMENT
+  FILE
+  FOLDER
+}
+
+enum AccessLevel {
+  VIEW
+  COMMENT
+  EDIT
+  ADMIN
+}
+
+enum DocumentType {
+  TEXT
+  MARKDOWN
+  HTML
+  RTF
+  JSON
+  XML
+  OTHER
+}
+
+enum AuditAction {
+  // Authentication events
+  USER_LOGIN
+  USER_LOGOUT
+  USER_REGISTER
+  LOGIN_FAILED
+  PASSWORD_CHANGED
+  ENABLE_2FA
+  DISABLE_2FA
+
+  // Document operations
+  DOCUMENT_UPLOADED
+  DOCUMENT_DOWNLOADED
+  DOCUMENT_VIEWED
+  DOCUMENT_DELETED
+  DOCUMENT_SHARED
+  DOCUMENT_CONVERTED
+
+  // PDF operations
+  PDF_MERGED
+  PDF_SPLIT
+  PDF_COMPRESSED
+  PDF_ANNOTATED
+  PDF_PAGES_REORDERED
+  PDF_TEXT_EDITED
+
+  // OCR operations
+  OCR_PERFORMED
+  TEXT_EXTRACTED
+
+  // Spreadsheet operations
+  SPREADSHEET_CREATED
+  SPREADSHEET_EDITED
+  FORMULA_CALCULATED
+
+  // Security events
+  UNAUTHORIZED_ACCESS
+  PERMISSION_DENIED
+  SUSPICIOUS_ACTIVITY
+  DATA_BREACH_ATTEMPT
+
+  // System events
+  SYSTEM_ERROR
+  BACKUP_CREATED
+  MAINTENANCE_MODE
+
+  // Theme and settings
+  THEME_CHANGED
+  SETTINGS_UPDATED
+
+  // Legacy actions (for backward compatibility)
+  CREATE
+  READ
+  UPDATE
+  DELETE
+  SHARE
+  UNSHARE
+  DOWNLOAD
+  UPLOAD
+  LOGIN
+  LOGOUT
+  REGISTER
+  VERIFY
+  RESET_PASSWORD
+  CHANGE_PASSWORD
+  CREATE_API_KEY
+  DELETE_API_KEY
+  CREATE_BACKUP
+  RESTORE_BACKUP
+  INVITE_USER
+  REMOVE_USER
+  CHANGE_ROLE
+  CREATE_ORGANIZATION
+  UPDATE_ORGANIZATION
+  DELETE_ORGANIZATION
+}
+
+enum RiskLevel {
+  LOW
+  MEDIUM
+  HIGH
+  CRITICAL
+}
+
+enum NotificationType {
+  INFO
+  SUCCESS
+  WARNING
+  ERROR
+  SHARE_RECEIVED
+  FILE_PROCESSED
+  BACKUP_COMPLETED
+  STORAGE_LIMIT
+  SECURITY_ALERT
+  ORGANIZATION_INVITE
+}
+
+enum BackupType {
+  FULL
+  INCREMENTAL
+  DIFFERENTIAL
+}
+
+enum BackupStatus {
+  PENDING
+  IN_PROGRESS
+  COMPLETED
+  FAILED
+  CANCELLED
+}
+
+// Models
+
 model User {
   id            String    @id @default(cuid())
   email         String    @unique
+  username      String?   @unique
+  firstName     String?
+  lastName      String?
   name          String?
-  image         String?
+  avatar        String?
+  bio           String?
   emailVerified DateTime?
-  createdAt     DateTime  @default(now())
-  updatedAt     DateTime  @updatedAt
+  timezone      String?   @default("UTC")
+  language      String?   @default("en")
+  theme         String?
 
-  // Authentication
-  accounts      Account[]
-  sessions      Session[]
+  // Security & Authentication
+  passwordHash     String?
+  salt             String?
+  twoFactorEnabled Boolean   @default(false)
+  twoFactorSecret  String?
+  recoveryKeys     String[]
+  lastLogin        DateTime?
+  loginAttempts    Int       @default(0)
+  lockedUntil      DateTime?
 
-  // User content
-  documents     Document[]
-  files         File[]
-  comments      Comment[]
-  shares        Share[]
-  organizations OrganizationMember[]
-  subscriptions Subscription[]
+  // Encryption Keys
+  masterKeyHash       String?
+  encryptedPrivateKey String?
+  publicKey           String?
+  keyDerivationSalt   String?
+  keyVersion          Int     @default(1)
 
-  // User preferences
-  preferences   UserPreferences?
+  // Account Status
+  isActive Boolean  @default(true)
+  role     UserRole @default(USER)
 
-  // Back-relations
+  // Storage & API Limits
+  storageQuota  BigInt @default(1073741824) // 1GB
+  storageUsed   BigInt @default(0)
+  apiCallsUsed  Int    @default(0)
+  apiCallsLimit Int    @default(1000)
+
+  // Timestamps
+  createdAt DateTime  @default(now())
+  updatedAt DateTime  @updatedAt
+  deletedAt DateTime?
+
+  // Relations
+  accounts               Account[]
+  sessions               Session[]
+  documents              Document[]
+  files                  File[]
+  comments               Comment[]
+  shares                 Share[]
+  organizations          OrganizationMember[]
+  subscriptions          Subscription[]
+  preferences            UserPreferences?
+  auditLogs              AuditLog[]
+  apiKeys                ApiKey[]
+  backups                Backup[]
+  sharedWithMe           Share[]                @relation("SharedWithUser")
+  notifications          Notification[]
   documentCollaborations DocumentCollaborator[]
 
   @@map("users")
 }
 
-// NextAuth.js integration models
 model Account {
   id                String  @id @default(cuid())
   userId            String
@@ -67,7 +329,20 @@ model Session {
   sessionToken String   @unique
   userId       String
   expires      DateTime
-  user         User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  // Enhanced session data
+  encryptedData String?
+  deviceInfo    Json? // Browser, OS, device type
+  ipAddress     String?
+  userAgent     String?
+  location      Json? // City, country, etc.
+  isValid       Boolean   @default(true)
+  revokedAt     DateTime?
+  revokedReason String?
+  createdAt     DateTime  @default(now())
+  lastActiveAt  DateTime  @default(now())
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
 
   @@map("sessions")
 }
@@ -81,313 +356,468 @@ model VerificationToken {
   @@map("verification_tokens")
 }
 
-// Document management system
 model Document {
-  id          String   @id @default(cuid())
-  title       String
-  content     String?  @db.Text
-  status      DocumentStatus @default(draft)
-  visibility  Visibility @default(private)
-  createdAt   DateTime @default(now())
-  updatedAt   DateTime @updatedAt
-  publishedAt DateTime?
+  id      String  @id @default(cuid())
+  title   String
+  slug    String? @unique
+  content String? @db.Text
+
+  // Enhanced content fields
+  encryptedContent  String? // Encrypted document content
+  encryptedMetadata String? // Encrypted document metadata
+  contentHash       String? // Hash for integrity verification
+  format            String? // markdown, html, rtf, etc.
+  documentType      DocumentType @default(TEXT)
+  language          String?      @default("en")
+
+  status     DocumentStatus @default(DRAFT)
+  visibility Visibility     @default(PRIVATE)
+
+  // Version control
+  version          Int     @default(1)
+  parentDocumentId String?
+  isCurrentVersion Boolean @default(true)
+  changeLog        Json? // Track changes between versions
+
+  // Sharing
+  shareToken     String?   @unique
+  shareExpiresAt DateTime?
+
+  // Publishing
+  isPublished  Boolean   @default(false)
+  publishedAt  DateTime?
+  publishedUrl String?
+
+  // Content analysis
+  wordCount    Int       @default(0)
+  readingTime  Int       @default(0) // in minutes
+  lastEditedBy String?
+  lastEditedAt DateTime?
+
+  // Timestamps
+  createdAt    DateTime  @default(now())
+  updatedAt    DateTime  @updatedAt
+  lastAccessed DateTime?
+  deletedAt    DateTime?
 
   // Relationships
-  authorId    String
-  author      User     @relation(fields: [authorId], references: [id], onDelete: Cascade)
-  
+  userId String
+  author User   @relation(fields: [userId], references: [id], onDelete: Cascade)
+
   organizationId String?
   organization   Organization? @relation(fields: [organizationId], references: [id])
-  
+
   collaborators DocumentCollaborator[]
   comments      Comment[]
   versions      DocumentVersion[]
   tags          Tag[]
-
-  // Document metadata
-  wordCount    Int      @default(0)
-  readingTime  Int      @default(0) // in minutes
-  lastEditedBy String?
-  lastEditedAt DateTime?
+  shares        Share[]                @relation("DocumentShares")
+  auditLogs     AuditLog[]
 
   @@map("documents")
 }
 
 model DocumentVersion {
-  id          String   @id @default(cuid())
-  version     Int
-  content     String   @db.Text
-  changes     String?  @db.Text // JSON string of changes
-  createdAt   DateTime @default(now())
-  createdBy   String
-  
-  documentId  String
-  document    Document @relation(fields: [documentId], references: [id], onDelete: Cascade)
+  id        String   @id @default(cuid())
+  version   Int
+  content   String   @db.Text
+  changes   String?  @db.Text // JSON string of changes
+  createdAt DateTime @default(now())
+  createdBy String
+
+  documentId String
+  document   Document @relation(fields: [documentId], references: [id], onDelete: Cascade)
 
   @@unique([documentId, version])
   @@map("document_versions")
 }
 
 model DocumentCollaborator {
-  id           String   @id @default(cuid())
-  documentId   String
-  userId       String
-  role         CollaborationRole @default(viewer)
-  joinedAt     DateTime @default(now())
-  
-  document    Document @relation(fields: [documentId], references: [id], onDelete: Cascade)
-  user        User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  id         String            @id @default(cuid())
+  documentId String
+  userId     String
+  role       CollaborationRole @default(VIEWER)
+  joinedAt   DateTime          @default(now())
+
+  document Document @relation(fields: [documentId], references: [id], onDelete: Cascade)
+  user     User     @relation(fields: [userId], references: [id], onDelete: Cascade)
 
   @@unique([documentId, userId])
   @@map("document_collaborators")
 }
 
-// File management system
 model File {
-  id          String   @id @default(cuid())
-  name        String
+  id           String  @id @default(cuid())
+  name         String
   originalName String
-  mimeType    String
-  size        Int
-  path        String
-  url         String?
-  thumbnail   String?
-  
-  // File metadata
-  uploadedAt  DateTime @default(now())
-  uploadedBy  String
-  lastAccessed DateTime?
-  accessCount Int      @default(0)
-  
+  slug         String? // URL-friendly name
+  mimeType     String
+  size         BigInt // File size in bytes
+  extension    String? // File extension
+  path         String
+  url          String?
+
+  // Security & Integrity
+  checksum          String // SHA-256 checksum for integrity
+  encryptedMetadata String // Encrypted file metadata
+  isEncrypted       Boolean @default(true)
+
+  // Media-specific fields
+  thumbnail  String?
+  duration   Int? // For audio/video files (seconds)
+  dimensions Json? // Width/height for images/videos
+
   // File processing
-  processingStatus ProcessingStatus @default(pending)
-  processingError String?
-  metadata    String? @db.Text // JSON string of file metadata
-  
+  processingStatus ProcessingStatus @default(PENDING)
+  processingError  String?
+  extractedText    String? // OCR/extracted text content
+
+  // Classification
+  category    FileCategory @default(DOCUMENT)
+  description String?
+
+  // Access control
+  visibility     Visibility @default(PRIVATE)
+  shareToken     String?    @unique
+  shareExpiresAt DateTime?
+  downloadCount  Int        @default(0)
+
+  // Version control
+  version          Int     @default(1)
+  parentFileId     String?
+  isCurrentVersion Boolean @default(true)
+
+  // Upload tracking
+  uploadedAt      DateTime @default(now())
+  uploadedBy      String // User who uploaded
+  uploadSessionId String? // For tracking upload sessions
+  uploadSource    String? // web, mobile, api, etc.
+
+  // Timestamps
+  createdAt    DateTime  @default(now())
+  updatedAt    DateTime  @updatedAt
+  lastAccessed DateTime?
+  lastModified DateTime? // File system modification time
+  deletedAt    DateTime? // Soft delete
+
   // Relationships
-  userId      String
-  user        User     @relation(fields: [userId], references: [id], onDelete: Cascade)
-  
+  userId String
+  user   User   @relation(fields: [userId], references: [id], onDelete: Cascade)
+
   organizationId String?
   organization   Organization? @relation(fields: [organizationId], references: [id])
-  
-  tags        Tag[]
 
+  parentFile File?      @relation("FileVersions", fields: [parentFileId], references: [id])
+  versions   File[]     @relation("FileVersions")
+  tags       Tag[]
+  shares     Share[]    @relation("FileShares")
+  auditLogs  AuditLog[]
+
+  @@index([userId])
+  @@index([organizationId])
+  @@index([mimeType])
+  @@index([category])
+  @@index([processingStatus])
+  @@index([uploadedAt])
+  @@index([shareToken])
   @@map("files")
 }
 
-// Organization and team management
 model Organization {
-  id          String   @id @default(cuid())
+  id          String  @id @default(cuid())
   name        String
-  slug        String   @unique
+  slug        String  @unique
   description String?
   logo        String?
-  createdAt   DateTime @default(now())
-  updatedAt   DateTime @updatedAt
-  
-  // Organization settings
-  settings   String? @db.Text // JSON string of org settings
-  
+
+  // Organization details
+  website  String?
+  industry String?
+  size     OrganizationSize?
+
+  // Security settings
+  encryptionPolicy EncryptionPolicy @default(REQUIRED)
+  retentionPolicy  Json? // Data retention policies
+  accessPolicy     Json? // Access control policies
+
+  // Subscription & limits
+  subscriptionTier SubscriptionTier @default(FREE)
+  storageQuota     BigInt           @default(10737418240) // 10GB
+  storageUsed      BigInt           @default(0)
+  memberLimit      Int              @default(10)
+
+  // Status
+  isActive   Boolean @default(true)
+  isVerified Boolean @default(false)
+
+  // Timestamps
+  createdAt DateTime  @default(now())
+  updatedAt DateTime  @updatedAt
+  deletedAt DateTime?
+
   // Relationships
-  members    OrganizationMember[]
-  documents  Document[]
-  files      File[]
-  shares     Share[]
+  members   OrganizationMember[]
+  documents Document[]
+  files     File[]
+  shares    Share[]
+  auditLogs AuditLog[]
 
   @@map("organizations")
 }
 
 model OrganizationMember {
-  id             String   @id @default(cuid())
+  id             String           @id @default(cuid())
   organizationId String
   userId         String
-  role           OrganizationRole @default(member)
-  joinedAt       DateTime @default(now())
-  
-  organization  Organization @relation(fields: [organizationId], references: [id], onDelete: Cascade)
-  user          User         @relation(fields: [userId], references: [id], onDelete: Cascade)
+  role           OrganizationRole @default(MEMBER)
+  permissions    Json? // Custom permissions
+  status         MemberStatus     @default(ACTIVE)
+
+  invitedAt DateTime?
+  joinedAt  DateTime?
+  createdAt DateTime  @default(now())
+  updatedAt DateTime  @updatedAt
+
+  organization Organization @relation(fields: [organizationId], references: [id], onDelete: Cascade)
+  user         User         @relation(fields: [userId], references: [id], onDelete: Cascade)
 
   @@unique([organizationId, userId])
   @@map("organization_members")
 }
 
-// Sharing and permissions system
 model Share {
-  id          String   @id @default(cuid())
+  id          String      @id @default(cuid())
+  token       String      @unique @default(cuid())
   type        ShareType
-  resourceId  String   // ID of document, file, or folder
+  accessLevel AccessLevel @default(VIEW)
+
+  // Foreign keys
+  documentId String?
+  fileId     String?
+
+  // Define relations — now with relation names
+  document Document? @relation("DocumentShares", fields: [documentId], references: [id])
+  file     File?     @relation("FileShares", fields: [fileId], references: [id])
+
+  // Existing fields
+  resourceId   String
   resourceType ResourceType
-  accessLevel AccessLevel @default(view)
-  
-  // Sharing settings
-  password   String?
-  expiresAt  DateTime?
-  maxViews   Int?
-  viewCount  Int       @default(0)
-  
-  // Share metadata
-  createdAt  DateTime @default(now())
-  createdBy  String
-  isActive   Boolean  @default(true)
-  
-  // Relationships
-  userId     String
-  user       User     @relation(fields: [userId], references: [id], onDelete: Cascade)
-  
+
+  password         String?
+  passwordHash     String?
+  requiresPassword Boolean @default(false)
+
+  expiresAt     DateTime?
+  maxViews      Int?
+  viewCount     Int       @default(0)
+  downloadCount Int       @default(0)
+  maxDownloads  Int?
+
+  lastAccessedAt DateTime?
+  accessCount    Int       @default(0)
+
+  isActive  Boolean  @default(true)
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  sharedBy String
+  user     User   @relation(fields: [sharedBy], references: [id], onDelete: Cascade)
+
+  sharedWith     String?
+  sharedWithUser User?   @relation("SharedWithUser", fields: [sharedWith], references: [id])
+
   organizationId String?
   organization   Organization? @relation(fields: [organizationId], references: [id])
 
+  @@index([token])
+  @@index([expiresAt])
   @@map("shares")
 }
 
-// Comment and collaboration system
 model Comment {
-  id          String   @id @default(cuid())
-  content     String   @db.Text
-  position    String?  // JSON string of position in document
-  resolved    Boolean  @default(false)
-  createdAt   DateTime @default(now())
-  updatedAt   DateTime @updatedAt
-  
+  id        String   @id @default(cuid())
+  content   String   @db.Text
+  position  String? // JSON string of position in document
+  resolved  Boolean  @default(false)
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
   // Relationships
-  authorId    String
-  author      User     @relation(fields: [authorId], references: [id], onDelete: Cascade)
-  
-  documentId  String
-  document    Document @relation(fields: [documentId], references: [id], onDelete: Cascade)
-  
-  parentId    String?
-  parent      Comment? @relation("CommentReplies", fields: [parentId], references: [id])
-  replies     Comment[] @relation("CommentReplies")
-  
-  mentions    String[] // Array of user IDs mentioned
+  authorId String
+  author   User   @relation(fields: [authorId], references: [id], onDelete: Cascade)
+
+  documentId String
+  document   Document @relation(fields: [documentId], references: [id], onDelete: Cascade)
+
+  parentId String?
+  parent   Comment?  @relation("CommentReplies", fields: [parentId], references: [id])
+  replies  Comment[] @relation("CommentReplies")
+
+  mentions String[] // Array of user IDs mentioned
 
   @@map("comments")
 }
 
-// Tagging system
 model Tag {
-  id          String   @id @default(cuid())
-  name        String
-  color       String?
-  createdAt   DateTime @default(now())
-  
-  // Relationships
-  documents   Document[]
-  files       File[]
+  id        String   @id @default(cuid())
+  name      String   @unique
+  color     String?
+  createdAt DateTime @default(now())
 
-  @@unique([name])
+  // Relationships
+  documents Document[]
+  files     File[]
+
   @@map("tags")
 }
 
-// Subscription and billing system
 model Subscription {
-  id          String   @id @default(cuid())
-  userId      String
-  plan        String   // free, pro, team, enterprise
-  status      SubscriptionStatus @default(active)
+  id                 String             @id @default(cuid())
+  userId             String
+  plan               String // free, pro, team, enterprise
+  status             SubscriptionStatus @default(ACTIVE)
   currentPeriodStart DateTime
   currentPeriodEnd   DateTime
-  cancelAtPeriodEnd Boolean @default(false)
-  canceledAt DateTime?
-  
+  cancelAtPeriodEnd  Boolean            @default(false)
+  canceledAt         DateTime?
+
   // Billing information
-  stripeCustomerId String?
+  stripeCustomerId     String?
   stripeSubscriptionId String?
-  
-  user        User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
 
   @@map("subscriptions")
 }
 
-// User preferences and settings
 model UserPreferences {
-  id          String   @id @default(cuid())
-  userId      String   @unique
-  theme       String   @default("light")
-  language    String   @default("en")
-  timezone    String?
-  notifications String? @db.Text // JSON string of notification preferences
-  
-  user        User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  id            String  @id @default(cuid())
+  userId        String  @unique
+  theme         String  @default("light")
+  language      String  @default("en")
+  timezone      String?
+  notifications Json? // JSON string of notification preferences
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
 
   @@map("user_preferences")
 }
 
+model ApiKey {
+  id         String    @id @default(cuid())
+  userId     String
+  name       String // User-friendly name
+  keyHash    String    @unique // Hashed API key
+  scopes     String[] // Array of permissions
+  rateLimit  Int? // Requests per hour
+  lastUsedAt DateTime?
+  usageCount BigInt    @default(0)
+  isActive   Boolean   @default(true)
+  createdAt  DateTime  @default(now())
+  expiresAt  DateTime?
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([keyHash])
+  @@index([userId])
+  @@map("api_keys")
+}
+
+model Backup {
+  id                String       @id @default(cuid())
+  userId            String
+  name              String
+  description       String?
+  backupType        BackupType   @default(FULL)
+  encryptedData     String // Encrypted backup data
+  encryptedMetadata String // Encrypted backup metadata
+  storageLocation   String // File path or cloud storage reference
+  checksum          String // Backup integrity check
+  size              BigInt // Backup size in bytes
+  fileCount         Int          @default(0)
+  documentCount     Int          @default(0)
+  status            BackupStatus @default(PENDING)
+  progress          Float        @default(0) // 0-100
+  errorMessage      String?
+  createdAt         DateTime     @default(now())
+  completedAt       DateTime?
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([userId])
+  @@index([status])
+  @@map("backups")
+}
+
+model AuditLog {
+  id           String      @id @default(cuid())
+  eventType    AuditAction
+  userId       String? // Can be null for system actions
+  userEmail    String?
+  ipAddress    String?
+  userAgent    String?
+  sessionId    String?
+  resourceId   String? // ID of the affected resource
+  resourceType String?
+  action       String // Human-readable action description
+  details      String // JSON string of event details
+  riskLevel    String      @default("LOW") // LOW, MEDIUM, HIGH, CRITICAL
+  timestamp    DateTime    @default(now())
+  success      Boolean     @default(true)
+  errorMessage String?
+  metadata     String? // JSON string of additional metadata
+
+  // Legacy fields for backward compatibility
+  organizationId String?
+  fileId         String? // If action related to file
+  documentId     String? // If action related to document
+  createdAt      DateTime @default(now())
+
+  user         User?         @relation(fields: [userId], references: [id])
+  organization Organization? @relation(fields: [organizationId], references: [id])
+  file         File?         @relation(fields: [fileId], references: [id])
+  document     Document?     @relation(fields: [documentId], references: [id])
+
+  @@index([userId])
+  @@index([eventType])
+  @@index([riskLevel])
+  @@index([resourceType])
+  @@index([timestamp])
+  @@index([createdAt])
+  @@map("audit_logs")
+}
+
+model Notification {
+  id           String           @id @default(cuid())
+  userId       String
+  type         NotificationType
+  title        String
+  message      String
+  actionUrl    String?
+  actionData   Json?
+  isRead       Boolean          @default(false)
+  readAt       DateTime?
+  scheduledFor DateTime? // For delayed notifications
+  createdAt    DateTime         @default(now())
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([userId])
+  @@index([isRead])
+  @@index([type])
+  @@map("notifications")
+}
+
 // Analytics and tracking
 model AnalyticsEvent {
-  id          String   @id @default(cuid())
-  userId      String?
-  event       String
-  category    String?
-  metadata    String? @db.Text // JSON string of event metadata
-  timestamp   DateTime @default(now())
-  userAgent   String?
-  ipAddress   String?
-  
+  id        String   @id @default(cuid())
+  userId    String?
+  event     String
+  category  String?
+  metadata  Json? // JSON string of event metadata
+  timestamp DateTime @default(now())
+  userAgent String?
+  ipAddress String?
+
   @@map("analytics_events")
-}
-
-// Enums
-enum DocumentStatus {
-  draft
-  published
-  archived
-  deleted
-}
-
-enum Visibility {
-  private
-  public
-  organization
-}
-
-enum CollaborationRole {
-  viewer
-  commenter
-  editor
-  admin
-}
-
-enum OrganizationRole {
-  member
-  moderator
-  admin
-  owner
-}
-
-enum ProcessingStatus {
-  pending
-  processing
-  completed
-  failed
-}
-
-enum ShareType {
-  link
-  email
-  user
-  organization
-}
-
-enum ResourceType {
-  document
-  file
-  folder
-}
-
-enum AccessLevel {
-  view
-  comment
-  edit
-  admin
-}
-
-enum SubscriptionStatus {
-  active
-  canceled
-  past_due
-  unpaid
-  incomplete
 }

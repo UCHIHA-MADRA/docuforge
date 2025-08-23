@@ -1,244 +1,195 @@
-"use client";
+'use client';
 
-import { createContext, useContext, useEffect, useState, useCallback } from "react";
-import { useSession, signIn, signOut } from "next-auth/react";
-// Define a User interface matching your user object structure
-export interface User {
+import { createContext, useContext, ReactNode, useEffect, useState } from 'react';
+import { useSession } from 'next-auth/react';
+import { Permission, hasPermission, hasAllPermissions, hasAnyPermission } from './permissions';
+
+interface UserWithRoles {
   id: string;
   email: string;
-  name?: string | null;
-  image?: string | null;
-  // Add other fields as needed
+  name?: string;
+  image?: string;
+  organizationRoles?: Array<{
+    organizationId: string;
+    role: string;
+  }>;
+  documentRoles?: Array<{
+    documentId: string;
+    role: string;
+  }>;
 }
 
 interface AuthContextType {
-  user: User | null;
+  user: UserWithRoles | null;
   loading: boolean;
-  error: string | null;
-  signIn: typeof signIn;
-  signOut: typeof signOut;
-  refreshUser: () => Promise<void>;
-  clearError: () => void;
+  isAuthenticated: boolean;
+  // Permission checking functions
+  hasPermission: (permission: Permission, context?: { documentId?: string; organizationId?: string }) => boolean;
+  hasAllPermissions: (permissions: Permission[], context?: { documentId?: string; organizationId?: string }) => boolean;
+  hasAnyPermission: (permissions: Permission[], context?: { documentId?: string; organizationId?: string }) => boolean;
+  // Role checking functions
+  hasRole: (role: string, context?: { documentId?: string; organizationId?: string }) => boolean;
+  isAdmin: () => boolean;
+  isOwner: (context?: { documentId?: string; organizationId?: string }) => boolean;
+  // Utility functions
+  refreshUserData: () => Promise<void>;
 }
 
 const AuthContext = createContext<AuthContextType | undefined>(undefined);
 
-// Retry configuration
-const MAX_RETRIES = 3;
-const RETRY_DELAY = 1000; // 1 second
-
-export function AuthProvider({ children }: { children: React.ReactNode }) {
+export function AuthProvider({ children }: { children: ReactNode }) {
   const { data: session, status } = useSession();
-  const [user, setUser] = useState<User | null>(null);
+  const [userWithRoles, setUserWithRoles] = useState<UserWithRoles | null>(null);
   const [loading, setLoading] = useState(true);
-  const [error, setError] = useState<string | null>(null);
-  const [retryCount, setRetryCount] = useState(0);
 
-  // Enhanced user fetching with retry logic and error handling
-  const fetchUser = useCallback(async (retryAttempt = 0): Promise<void> => {
-    try {
-      setError(null);
-      
-      // Edge Case 1: Check if session exists
-      if (!session?.user?.email) {
-        setUser(null);
-        setLoading(false);
-        return;
-      }
-
-      // Edge Case 2: Network timeout handling
-      const controller = new AbortController();
-      const timeoutId = setTimeout(() => controller.abort(), 10000); // 10 second timeout
-
-      const response = await fetch("/api/users/me", {
-        signal: controller.signal,
-        headers: {
-          "Cache-Control": "no-cache",
-        },
-      });
-
-      clearTimeout(timeoutId);
-
-      // Edge Case 3: Handle different HTTP status codes
-      if (response.status === 401) {
-        // Unauthorized - session expired
-        setError("Session expired. Please sign in again.");
-        setUser(null);
-        setLoading(false);
-        return;
-      }
-
-      if (response.status === 403) {
-        // Forbidden - user access denied
-        setError("Access denied. Your account may be suspended.");
-        setUser(null);
-        setLoading(false);
-        return;
-      }
-
-      if (response.status === 404) {
-        // User not found - account may have been deleted
-        setError("User account not found. Please contact support.");
-        setUser(null);
-        setLoading(false);
-        return;
-      }
-
-      if (response.status === 429) {
-        // Rate limited
-        setError("Too many requests. Please wait a moment and try again.");
-        setUser(null);
-        setLoading(false);
-        return;
-      }
-
-      if (response.status === 500) {
-        // Server error
-        throw new Error("Server error occurred while fetching user data");
-      }
-
-      if (!response.ok) {
-        throw new Error(`HTTP error! status: ${response.status}`);
-      }
-
-      const data = await response.json();
-
-      // Edge Case 4: Validate response data structure
-      if (!data || typeof data !== "object") {
-        throw new Error("Invalid response format from server");
-      }
-
-      if (!data.user || typeof data.user !== "object") {
-        throw new Error("User data is missing or invalid");
-      }
-
-      // Edge Case 5: Validate required user fields
-      const requiredFields = ["id", "email"];
-      for (const field of requiredFields) {
-        if (!data.user[field]) {
-          throw new Error(`User data missing required field: ${field}`);
+  // Fetch user data with roles when session changes
+  useEffect(() => {
+    const fetchUserData = async () => {
+      if (session?.user?.id) {
+        try {
+          const response = await fetch('/api/auth/user-data');
+          if (response.ok) {
+            const userData = await response.json();
+            setUserWithRoles(userData);
+          } else {
+            // Fallback to session data
+            setUserWithRoles({
+              id: session.user.id,
+              email: session.user.email || '',
+              name: session.user.name || undefined,
+              image: session.user.image || undefined,
+              organizationRoles: [],
+              documentRoles: [],
+            });
+          }
+        } catch (error) {
+          console.error('Failed to fetch user data:', error);
+          // Fallback to session data
+          setUserWithRoles({
+            id: session.user.id,
+            email: session.user.email || '',
+            name: session.user.name || undefined,
+            image: session.user.image || undefined,
+            organizationRoles: [],
+            documentRoles: [],
+          });
         }
+      } else {
+        setUserWithRoles(null);
       }
-
-      setUser(data.user);
-      setRetryCount(0); // Reset retry count on success
       setLoading(false);
-    } catch (error) {
-      console.error("Error fetching user:", error);
-
-      // Edge Case 6: Handle specific error types
-      let errorMessage = "Failed to fetch user data";
-
-      if (error instanceof Error) {
-        if (error.name === "AbortError") {
-          errorMessage = "Request timeout. Please check your connection.";
-        } else if (error.message.includes("Failed to fetch")) {
-          errorMessage = "Network error. Please check your internet connection.";
-        } else if (error.message.includes("Server error")) {
-          errorMessage = "Server temporarily unavailable. Please try again later.";
-        } else {
-          errorMessage = error.message;
-        }
-      }
-
-      setError(errorMessage);
-
-      // Edge Case 7: Retry logic for transient errors
-      if (retryAttempt < MAX_RETRIES && 
-          (errorMessage.includes("Network error") || 
-           errorMessage.includes("Server error") ||
-           errorMessage.includes("timeout"))) {
-        
-        setRetryCount(retryAttempt + 1);
-        
-        // Exponential backoff
-        const delay = RETRY_DELAY * Math.pow(2, retryAttempt);
-        
-        setTimeout(() => {
-          fetchUser(retryAttempt + 1);
-        }, delay);
-        
-        return;
-      }
-
-      // Edge Case 8: Final failure - set user to null but don't keep loading
-      setUser(null);
-      setLoading(false);
-    }
-  }, [session]);
-
-  // Refresh user data manually
-  const refreshUser = useCallback(async (): Promise<void> => {
-    setLoading(true);
-    await fetchUser();
-  }, [fetchUser]);
-
-  // Clear error messages
-  const clearError = useCallback((): void => {
-    setError(null);
-  }, []);
-
-  useEffect(() => {
-    if (status === "loading") {
-      setLoading(true);
-      return;
-    }
-
-    if (status === "unauthenticated") {
-      setUser(null);
-      setLoading(false);
-      setError(null);
-      setRetryCount(0);
-      return;
-    }
-
-    if (status === "authenticated" && session?.user) {
-      fetchUser();
-    }
-  }, [session, status, fetchUser]);
-
-  // Edge Case 9: Handle session changes
-  useEffect(() => {
-    if (session?.user?.email !== user?.email) {
-      // User changed, refresh data
-      if (session?.user) {
-        fetchUser();
-      }
-    }
-  }, [session?.user?.email, user?.email, fetchUser]);
-
-  // Edge Case 10: Auto-refresh user data periodically (every 5 minutes)
-  useEffect(() => {
-    if (user && status === "authenticated") {
-      const interval = setInterval(() => {
-        fetchUser();
-      }, 5 * 60 * 1000); // 5 minutes
-
-      return () => clearInterval(interval);
-    }
-  }, [user, status, fetchUser]);
-
-  // Edge Case 11: Handle window focus to refresh stale data
-  useEffect(() => {
-    const handleFocus = () => {
-      if (user && status === "authenticated") {
-        // Refresh user data when window regains focus
-        fetchUser();
-      }
     };
 
-    window.addEventListener("focus", handleFocus);
-    return () => window.removeEventListener("focus", handleFocus);
-  }, [user, status, fetchUser]);
+    if (status !== 'loading') {
+      fetchUserData();
+    }
+  }, [session, status]);
 
-  const value = {
-    user,
-    loading,
-    error,
-    signIn,
-    signOut,
-    refreshUser,
-    clearError,
+  const refreshUserData = async () => {
+    if (session?.user?.id) {
+      setLoading(true);
+      try {
+        const response = await fetch('/api/auth/user-data');
+        if (response.ok) {
+          const userData = await response.json();
+          setUserWithRoles(userData);
+        }
+      } catch (error) {
+        console.error('Failed to refresh user data:', error);
+      }
+      setLoading(false);
+    }
+  };
+
+  const checkPermission = (permission: Permission, context?: { documentId?: string; organizationId?: string }) => {
+    if (!userWithRoles) return false;
+    return hasPermission({
+      ...userWithRoles,
+      name: userWithRoles.name || null,
+      image: userWithRoles.image || null,
+      organizationRoles: userWithRoles.organizationRoles || [],
+      documentRoles: userWithRoles.documentRoles || []
+    }, permission, context);
+  };
+
+  const checkAllPermissions = (permissions: Permission[], context?: { documentId?: string; organizationId?: string }) => {
+    if (!userWithRoles) return false;
+    return hasAllPermissions({
+      ...userWithRoles,
+      name: userWithRoles.name || null,
+      image: userWithRoles.image || null,
+      organizationRoles: userWithRoles.organizationRoles || [],
+      documentRoles: userWithRoles.documentRoles || []
+    }, permissions, context);
+  };
+
+  const checkAnyPermission = (permissions: Permission[], context?: { documentId?: string; organizationId?: string }) => {
+    if (!userWithRoles) return false;
+    return hasAnyPermission({
+      ...userWithRoles,
+      name: userWithRoles.name || null,
+      image: userWithRoles.image || null,
+      organizationRoles: userWithRoles.organizationRoles || [],
+      documentRoles: userWithRoles.documentRoles || []
+    }, permissions, context);
+  };
+
+  const checkRole = (role: string, context?: { documentId?: string; organizationId?: string }) => {
+    if (!userWithRoles) return false;
+    
+    if (context?.documentId) {
+      return userWithRoles.documentRoles?.some(
+        dr => dr.documentId === context.documentId && dr.role === role
+      ) || false;
+    }
+    
+    if (context?.organizationId) {
+      return userWithRoles.organizationRoles?.some(
+        or => or.organizationId === context.organizationId && or.role === role
+      ) || false;
+    }
+    
+    // Check if user has this role in any context
+    return (
+      userWithRoles.organizationRoles?.some(or => or.role === role) ||
+      userWithRoles.documentRoles?.some(dr => dr.role === role)
+    ) || false;
+  };
+
+  const checkIsAdmin = () => {
+    if (!userWithRoles) return false;
+    return userWithRoles.organizationRoles?.some(or => or.role === 'admin' || or.role === 'owner') || false;
+  };
+
+  const checkIsOwner = (context?: { documentId?: string; organizationId?: string }) => {
+    if (!userWithRoles) return false;
+    
+    if (context?.documentId) {
+      return userWithRoles.documentRoles?.some(
+        dr => dr.documentId === context.documentId && dr.role === 'owner'
+      ) || false;
+    }
+    
+    if (context?.organizationId) {
+      return userWithRoles.organizationRoles?.some(
+        or => or.organizationId === context.organizationId && or.role === 'owner'
+      ) || false;
+    }
+    
+    return userWithRoles.organizationRoles?.some(or => or.role === 'owner') || false;
+  };
+
+  const value: AuthContextType = {
+    user: userWithRoles,
+    loading: loading || status === 'loading',
+    isAuthenticated: !!userWithRoles,
+    hasPermission: checkPermission,
+    hasAllPermissions: checkAllPermissions,
+    hasAnyPermission: checkAnyPermission,
+    hasRole: checkRole,
+    isAdmin: checkIsAdmin,
+    isOwner: checkIsOwner,
+    refreshUserData,
   };
 
   return <AuthContext.Provider value={value}>{children}</AuthContext.Provider>;
@@ -247,7 +198,28 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
 export function useAuth() {
   const context = useContext(AuthContext);
   if (context === undefined) {
-    throw new Error("useAuth must be used within an AuthProvider");
+    throw new Error('useAuth must be used within an AuthProvider');
   }
   return context;
+}
+
+// Convenience hooks for common permission checks
+export function usePermission(permission: Permission, context?: { documentId?: string; organizationId?: string }) {
+  const { hasPermission } = useAuth();
+  return hasPermission(permission, context);
+}
+
+export function useRole(role: string, context?: { documentId?: string; organizationId?: string }) {
+  const { hasRole } = useAuth();
+  return hasRole(role, context);
+}
+
+export function useIsAdmin() {
+  const { isAdmin } = useAuth();
+  return isAdmin();
+}
+
+export function useIsOwner(context?: { documentId?: string; organizationId?: string }) {
+  const { isOwner } = useAuth();
+  return isOwner(context);
 }
