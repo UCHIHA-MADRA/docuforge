@@ -223,10 +223,12 @@ export function AnnotationToolbar({
               <Button
                 variant={selectedTool === 'stamp' ? 'default' : 'ghost'}
                 size="sm"
-                className="flex items-center gap-1"
+                className="flex items-center"
               >
-                <Stamp className="h-4 w-4" />
-                <ChevronDown className="h-3 w-3" />
+                <span className="inline-flex items-center">
+                  <span className="mr-1"><Stamp className="h-4 w-4" /></span>
+                  <span><ChevronDown className="h-3 w-3" /></span>
+                </span>
               </Button>
             </DropdownMenuTrigger>
             <DropdownMenuContent>

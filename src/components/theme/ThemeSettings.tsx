@@ -225,9 +225,11 @@ const ThemeSettings: React.FC<ThemeSettingsProps> = ({ onClose }) => {
                   <Button
                     variant={theme.highContrast ? 'default' : 'outline'}
                     onClick={() => updateTheme({ highContrast: !theme.highContrast })}
-                    className="flex items-center gap-2"
+                    className="flex items-center"
                   >
-                    {theme.highContrast ? 'Enabled' : 'Disabled'}
+                    <span className="inline-flex items-center">
+                      <span>{theme.highContrast ? 'Enabled' : 'Disabled'}</span>
+                    </span>
                   </Button>
                   <p className="text-sm text-muted-foreground">
                     Increases contrast for better visibility
@@ -242,9 +244,11 @@ const ThemeSettings: React.FC<ThemeSettingsProps> = ({ onClose }) => {
                   <Button
                     variant={theme.animations ? 'default' : 'outline'}
                     onClick={() => updateTheme({ animations: !theme.animations })}
-                    className="flex items-center gap-2"
+                    className="flex items-center"
                   >
-                    {theme.animations ? 'Enabled' : 'Disabled'}
+                    <span className="inline-flex items-center">
+                      <span>{theme.animations ? 'Enabled' : 'Disabled'}</span>
+                    </span>
                   </Button>
                   <p className="text-sm text-muted-foreground">
                     Controls interface animations and transitions

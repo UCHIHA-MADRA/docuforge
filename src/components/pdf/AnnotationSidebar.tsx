@@ -30,6 +30,7 @@ import { Input } from '@/components/ui/input';
 import { Textarea } from '@/components/ui/textarea';
 import { Badge } from '@/components/ui/badge';
 import { Card, CardContent, CardHeader } from '@/components/ui/card';
+import { Link as StyledLink } from '@/components/ui/link';
 import {
   Collapsible,
   CollapsibleContent,
@@ -335,14 +336,16 @@ export function AnnotationSidebar({
         return (
           <div className="text-sm text-gray-600">
             <p className="font-medium">Link:</p>
-            <a 
+            <StyledLink 
               href={link.url} 
               target="_blank" 
               rel="noopener noreferrer"
-              className="text-blue-600 hover:underline break-all"
+              variant="buttonOutline"
+              size="sm"
+              className="mt-1 break-all"
             >
               {link.displayText || link.url}
-            </a>
+            </StyledLink>
           </div>
         );
       default:
@@ -536,12 +539,16 @@ export function AnnotationSidebar({
 
           <DropdownMenu>
             <DropdownMenuTrigger asChild>
-              <Button variant="outline" size="sm" className="flex items-center gap-1">
-                {sortOrder === 'asc' ? 
-                  <SortAsc className="h-3 w-3" /> : 
-                  <SortDesc className="h-3 w-3" />
-                }
-                Sort
+              <Button variant="outline" size="sm" className="flex items-center">
+                <span className="inline-flex items-center">
+                  <span className="mr-2">
+                    {sortOrder === 'asc' ? 
+                      <SortAsc className="h-3 w-3" /> : 
+                      <SortDesc className="h-3 w-3" />
+                    }
+                  </span>
+                  <span>Sort</span>
+                </span>
               </Button>
             </DropdownMenuTrigger>
             <DropdownMenuContent>

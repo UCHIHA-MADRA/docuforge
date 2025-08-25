@@ -920,12 +920,16 @@ const PDFEditor: React.FC<PDFEditorProps> = ({
 
               {editorState.isEditing ? (
                 <Button onClick={finishEditing} size="sm">
-                  Done
+                  <span className="inline-flex items-center">
+                    <span>Done</span>
+                  </span>
                 </Button>
               ) : (
                 <Button onClick={startEditing} variant="outline" size="sm">
-                  <Edit3 className="w-4 h-4 mr-2" />
-                  Edit
+                  <span className="inline-flex items-center">
+                    <span className="mr-2"><Edit3 className="w-4 h-4" /></span>
+                    <span>Edit</span>
+                  </span>
                 </Button>
               )}
 
@@ -934,7 +938,9 @@ const PDFEditor: React.FC<PDFEditorProps> = ({
                 variant="destructive"
                 size="sm"
               >
-                <Trash2 className="w-4 h-4" />
+                <span className="inline-flex items-center">
+                  <Trash2 className="w-4 h-4" />
+                </span>
               </Button>
             </div>
           )}

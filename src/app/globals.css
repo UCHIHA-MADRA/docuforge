@@ -2,13 +2,68 @@
 @tailwind components;
 @tailwind utilities;
 
-@import '../styles/editor.css';
+@import "../styles/editor.css";
 
+/* Responsive utility classes */
+@layer utilities {
+  .container-fluid {
+    width: 100%;
+    padding-right: 1rem;
+    padding-left: 1rem;
+    margin-right: auto;
+    margin-left: auto;
+  }
 
+  @media (min-width: 640px) {
+    .container-fluid {
+      padding-right: 1.5rem;
+      padding-left: 1.5rem;
+    }
+  }
+
+  @media (min-width: 768px) {
+    .container-fluid {
+      padding-right: 2rem;
+      padding-left: 2rem;
+    }
+  }
+
+  @media (min-width: 1024px) {
+    .container-fluid {
+      padding-right: 2.5rem;
+      padding-left: 2.5rem;
+    }
+  }
+
+  .text-balance {
+    text-wrap: balance;
+  }
+}
+
+/* Custom animations */
+@keyframes shimmer {
+  0% {
+    background-position: -100% 0;
+  }
+  100% {
+    background-position: 200% 0;
+  }
+}
+
+.footer-separator {
+  background-image: linear-gradient(
+    90deg,
+    transparent,
+    theme("colors.primary.DEFAULT") 50%,
+    transparent
+  );
+  background-size: 200% 100%;
+  animation: shimmer 3s infinite;
+  animation-timing-function: ease-in-out;
+}
 
 @layer base {
   :root {
-
     --background: 0 0% 100%;
 
     --foreground: 0 0% 3.9%;
@@ -57,10 +112,9 @@
 
     --chart-5: 27 87% 67%;
 
-    --radius: 0.5rem
+    --radius: 0.5rem;
   }
   .dark {
-
     --background: 0 0% 3.9%;
 
     --foreground: 0 0% 98%;
@@ -107,11 +161,9 @@
 
     --chart-4: 280 65% 60%;
 
-    --chart-5: 340 75% 55%
+    --chart-5: 340 75% 55%;
   }
 }
-
-
 
 @layer base {
   * {
@@ -120,4 +172,10 @@
   body {
     @apply bg-background text-foreground;
   }
+}
+
+button:focus,
+a:focus {
+  outline: none !important;
+  box-shadow: none !important;
 }

@@ -23,9 +23,9 @@
   --input: 226 232 240;
   --ring: 59 130 246;
   --success: 34 197 94;
-  --warning: 251 191 36;
+  --warning: 251 146 60; /* Changed from yellow (251 191 36) to orange (251 146 60) */
   --info: 59 130 246;
-  
+
   /* Typography */
   --font-size-xs: 0.75rem;
   --font-size-sm: 0.875rem;
@@ -33,16 +33,18 @@
   --font-size-lg: 1.125rem;
   --font-size-xl: 1.25rem;
   --font-size-2xl: 1.5rem;
-  
+
   /* Spacing and Layout */
   --radius: 0.5rem;
-  
+
   /* Shadows */
   --shadow-sm: 0 1px 2px 0 rgb(0 0 0 / 0.05);
   --shadow: 0 1px 3px 0 rgb(0 0 0 / 0.1), 0 1px 2px -1px rgb(0 0 0 / 0.1);
   --shadow-md: 0 4px 6px -1px rgb(0 0 0 / 0.1), 0 2px 4px -2px rgb(0 0 0 / 0.1);
-  --shadow-lg: 0 10px 15px -3px rgb(0 0 0 / 0.1), 0 4px 6px -4px rgb(0 0 0 / 0.1);
-  --shadow-xl: 0 20px 25px -5px rgb(0 0 0 / 0.1), 0 8px 10px -6px rgb(0 0 0 / 0.1);
+  --shadow-lg: 0 10px 15px -3px rgb(0 0 0 / 0.1),
+    0 4px 6px -4px rgb(0 0 0 / 0.1);
+  --shadow-xl: 0 20px 25px -5px rgb(0 0 0 / 0.1),
+    0 8px 10px -6px rgb(0 0 0 / 0.1);
 }
 
 /* Dark theme overrides - ensure these are properly applied */
@@ -68,16 +70,18 @@
   --input: 51 65 85; /* Medium dark blue */
   --ring: 147 51 234; /* Purple */
   --success: 34 197 94; /* Green */
-  --warning: 251 191 36; /* Yellow */
+  --warning: 251 146 60; /* Changed from yellow (251 191 36) to orange (251 146 60) */
   --info: 59 130 246; /* Blue */
-  
+
   /* Dark theme specific shadows */
   --shadow-sm: 0 1px 2px 0 rgb(0 0 0 / 0.3);
   --shadow: 0 1px 3px 0 rgb(0 0 0 / 0.4), 0 1px 2px -1px rgb(0 0 0 / 0.4);
   --shadow-md: 0 4px 6px -1px rgb(0 0 0 / 0.4), 0 2px 4px -2px rgb(0 0 0 / 0.4);
-  --shadow-lg: 0 10px 15px -3px rgb(0 0 0 / 0.4), 0 4px 6px -4px rgb(0 0 0 / 0.4);
-  --shadow-xl: 0 20px 25px -5px rgb(0 0 0 / 0.4), 0 8px 10px -6px rgb(0 0 0 / 0.4);
-  
+  --shadow-lg: 0 10px 15px -3px rgb(0 0 0 / 0.4),
+    0 4px 6px -4px rgb(0 0 0 / 0.4);
+  --shadow-xl: 0 20px 25px -5px rgb(0 0 0 / 0.4),
+    0 8px 10px -6px rgb(0 0 0 / 0.4);
+
   /* Dark theme color scheme */
   color-scheme: dark;
 }
@@ -151,10 +155,18 @@
 }
 
 /* Dark theme button styles */
-.dark .bg-primary { background-color: rgb(147 51 234) !important; }
-.dark .text-primary-foreground { color: rgb(255 255 255) !important; }
-.dark .bg-primary-foreground { background-color: rgb(30 41 59) !important; }
-.dark .text-primary { color: rgb(147 51 234) !important; }
+.dark .bg-primary {
+  background-color: rgb(147 51 234) !important;
+}
+.dark .text-primary-foreground {
+  color: rgb(255 255 255) !important;
+}
+.dark .bg-primary-foreground {
+  background-color: rgb(30 41 59) !important;
+}
+.dark .text-primary {
+  color: rgb(147 51 234) !important;
+}
 
 /* Dark theme button variants */
 .dark button[data-variant="default"],
@@ -194,9 +206,27 @@
 }
 
 /* Dark theme gradient backgrounds */
-.dark .bg-gradient-to-br { background: linear-gradient(to bottom right, rgb(15 23 42), rgb(30 41 59)) !important; }
-.dark .from-primary\/5 { background: linear-gradient(to bottom right, rgb(15 23 42), rgb(30 41 59)) !important; }
-.dark .to-secondary\/5 { background: linear-gradient(to bottom right, rgb(15 23 42), rgb(30 41 59)) !important; }
+.dark .bg-gradient-to-br {
+  background: linear-gradient(
+    to bottom right,
+    rgb(15 23 42),
+    rgb(30 41 59)
+  ) !important;
+}
+.dark .from-primary\/5 {
+  background: linear-gradient(
+    to bottom right,
+    rgb(15 23 42),
+    rgb(30 41 59)
+  ) !important;
+}
+.dark .to-secondary\/5 {
+  background: linear-gradient(
+    to bottom right,
+    rgb(15 23 42),
+    rgb(30 41 59)
+  ) !important;
+}
 
 /* Additional dark theme overrides for specific elements */
 .dark .bg-slate-50,
@@ -236,11 +266,18 @@
 }
 
 /* Ensure all text is visible in dark mode */
-.dark h1, .dark h2, .dark h3, .dark h4, .dark h5, .dark h6 {
+.dark h1,
+.dark h2,
+.dark h3,
+.dark h4,
+.dark h5,
+.dark h6 {
   color: rgb(248 250 252) !important; /* Light gray/white */
 }
 
-.dark p, .dark span, .dark div {
+.dark p,
+.dark span,
+.dark div {
   color: rgb(248 250 252) !important; /* Light gray/white */
 }
 
@@ -270,7 +307,7 @@
   --input: 0 0 0;
   --ring: 0 0 0;
   --success: 0 150 0;
-  --warning: 200 150 0;
+  --warning: 200 150 0; /* Orange instead of yellow */
   --info: 0 0 200;
 }
 
@@ -295,7 +332,7 @@
   --input: 255 255 255;
   --ring: 255 255 255;
   --success: 100 255 100;
-  --warning: 255 255 100;
+  --warning: 255 100 100; /* Red-orange instead of yellow */
   --info: 100 100 255;
 }
 
@@ -320,12 +357,22 @@ body {
   background-color: rgb(var(--background));
   color: rgb(var(--foreground));
   font-size: var(--font-size-base);
-  transition: background-color 0.3s ease, color 0.3s ease, border-color 0.3s ease, box-shadow 0.3s ease;
+  transition: background-color 0.3s ease, color 0.3s ease,
+    border-color 0.3s ease, box-shadow 0.3s ease;
 }
 
 /* Add transitions to common UI elements */
-button, a, input, select, textarea, .card, .dropdown-menu, .popover, .dialog {
-  transition: background-color 0.3s ease, color 0.3s ease, border-color 0.3s ease, box-shadow 0.3s ease, transform 0.2s ease;
+button,
+a,
+input,
+select,
+textarea,
+.card,
+.dropdown-menu,
+.popover,
+.dialog {
+  transition: background-color 0.3s ease, color 0.3s ease,
+    border-color 0.3s ease, box-shadow 0.3s ease, transform 0.2s ease;
 }
 
 /* Component base styles */
@@ -577,14 +624,18 @@ button, a, input, select, textarea, .card, .dropdown-menu, .popover, .dialog {
 .focus-visible\:ring-2:focus-visible {
   outline: 2px solid transparent;
   outline-offset: 2px;
-  --tw-ring-offset-shadow: var(--tw-ring-inset) 0 0 0 var(--tw-ring-offset-width) var(--tw-ring-offset-color);
-  --tw-ring-shadow: var(--tw-ring-inset) 0 0 0 calc(2px + var(--tw-ring-offset-width)) var(--tw-ring-color);
-  box-shadow: var(--tw-ring-offset-shadow), var(--tw-ring-shadow), var(--tw-shadow, 0 0 #0000);
+  --tw-ring-offset-shadow: var(--tw-ring-inset) 0 0 0
+    var(--tw-ring-offset-width) var(--tw-ring-offset-color);
+  --tw-ring-shadow: var(--tw-ring-inset) 0 0 0
+    calc(2px + var(--tw-ring-offset-width)) var(--tw-ring-color);
+  box-shadow: var(--tw-ring-offset-shadow), var(--tw-ring-shadow),
+    var(--tw-shadow, 0 0 #0000);
 }
 
 /* Smooth transitions for theme changes */
 .theme-transition {
-  transition: background-color 0.3s ease, color 0.3s ease, border-color 0.3s ease;
+  transition: background-color 0.3s ease, color 0.3s ease,
+    border-color 0.3s ease;
 }
 
 /* Print styles */
@@ -595,7 +646,7 @@ button, a, input, select, textarea, .card, .dropdown-menu, .popover, .dialog {
     --card: 255 255 255;
     --card-foreground: 0 0 0;
   }
-  
+
   body {
     background-color: white !important;
     color: black !important;

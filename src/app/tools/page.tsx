@@ -6,6 +6,7 @@ import DocumentConverter from "@/components/tools/DocumentConverter";
 import OCRExtractor from "@/components/tools/OCRExtractor";
 import SpreadsheetEngine from "@/components/spreadsheet/SpreadsheetEngine";
 import ClientEnhancedThemeToggle from "@/components/theme/ClientEnhancedThemeToggle";
+import { AlertCircle as AlertCircleIcon, CheckCircle as CheckCircleIcon } from "lucide-react";
 
 interface FileWithPreview extends File {
   preview: string;

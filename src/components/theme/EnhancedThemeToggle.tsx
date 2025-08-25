@@ -82,17 +82,21 @@ const EnhancedThemeToggle: React.FC<EnhancedThemeToggleProps> = ({
           animate={{ scale: 1, opacity: 1, rotate: 0 }}
           exit={{ scale: 0.5, opacity: 0, rotate: 30 }}
           transition={{ duration: 0.2 }}
-          className="flex items-center"
+          className="inline-flex items-center"
         >
           {actualTheme === 'light' ? (
             <>
-              <Moon className="h-4 w-4 mr-2" />
-              {showLabel && 'Dark mode'}
+              <span className="inline-flex items-center">
+                <span className="mr-2"><Moon className="h-4 w-4" /></span>
+                {showLabel && <span>Dark mode</span>}
+              </span>
             </>
           ) : (
             <>
-              <Sun className="h-4 w-4 mr-2" />
-              {showLabel && 'Light mode'}
+              <span className="inline-flex items-center">
+                <span className="mr-2"><Sun className="h-4 w-4" /></span>
+                {showLabel && <span>Light mode</span>}
+              </span>
             </>
           )}
         </motion.div>
@@ -137,53 +141,65 @@ const EnhancedThemeToggle: React.FC<EnhancedThemeToggleProps> = ({
         <Button
           variant="outline"
           size={size}
-          className={`flex items-center gap-2 ${className}`}
+          className={`flex items-center ${className}`}
           title={`Current theme: ${getThemeLabel()} (${actualTheme})`}
           aria-label="Change theme settings"
         >
-          {theme.mode === 'light' && <Sun className="h-4 w-4" />}
-          {theme.mode === 'dark' && <Moon className="h-4 w-4" />}
-          {theme.mode === 'system' && <Monitor className="h-4 w-4" />}
-          {showLabel && <span>{getThemeLabel()}</span>}
-          <span className="sr-only">Select theme</span>
+          <span className="inline-flex items-center">
+            <span className="mr-2">
+              {theme.mode === 'light' && <Sun className="h-4 w-4" />}
+              {theme.mode === 'dark' && <Moon className="h-4 w-4" />}
+              {theme.mode === 'system' && <Monitor className="h-4 w-4" />}
+            </span>
+            {showLabel && <span>{getThemeLabel()}</span>}
+            <span className="sr-only">Select theme</span>
+          </span>
         </Button>
       </DropdownMenuTrigger>
       <DropdownMenuContent align="end" className="w-48">
         <DropdownMenuItem
           onClick={() => updateTheme({ mode: 'light' })}
-          className="flex items-center gap-2 cursor-pointer"
+          className="flex items-center cursor-pointer"
           aria-label="Light mode"
         >
-          <Sun className="h-4 w-4" />
-          <span>Light</span>
+          <span className="inline-flex items-center">
+            <span className="mr-2"><Sun className="h-4 w-4" /></span>
+            <span>Light</span>
+          </span>
           {theme.mode === 'light' && <span className="ml-auto">✓</span>}
         </DropdownMenuItem>
         <DropdownMenuItem
           onClick={() => updateTheme({ mode: 'dark' })}
-          className="flex items-center gap-2 cursor-pointer"
+          className="flex items-center cursor-pointer"
           aria-label="Dark mode"
         >
-          <Moon className="h-4 w-4" />
-          <span>Dark</span>
+          <span className="inline-flex items-center">
+            <span className="mr-2"><Moon className="h-4 w-4" /></span>
+            <span>Dark</span>
+          </span>
           {theme.mode === 'dark' && <span className="ml-auto">✓</span>}
         </DropdownMenuItem>
         <DropdownMenuItem
           onClick={() => updateTheme({ mode: 'system' })}
-          className="flex items-center gap-2 cursor-pointer"
+          className="flex items-center cursor-pointer"
           aria-label="System theme"
         >
-          <Monitor className="h-4 w-4" />
-          <span>System</span>
+          <span className="inline-flex items-center">
+            <span className="mr-2"><Monitor className="h-4 w-4" /></span>
+            <span>System</span>
+          </span>
           {theme.mode === 'system' && <span className="ml-auto">✓</span>}
         </DropdownMenuItem>
         <div className="border-t my-1" />
         <DropdownMenuItem
           onClick={() => setShowSettings(true)}
-          className="flex items-center gap-2 cursor-pointer"
+          className="flex items-center cursor-pointer"
           aria-label="Customize theme"
         >
-          <Settings className="h-4 w-4" />
-          <span>Theme Settings</span>
+          <span className="inline-flex items-center">
+            <span className="mr-2"><Settings className="h-4 w-4" /></span>
+            <span>Theme Settings</span>
+          </span>
         </DropdownMenuItem>
       </DropdownMenuContent>
     </DropdownMenu>

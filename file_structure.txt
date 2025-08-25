@@ -1,0 +1,220 @@
+.gitignore
+FEATURES_DOCUMENTATION.md
+PROJECT_SUMMARY.md
+README.md
+UI_COMPONENTS_GUIDE.md
+components.json
+dashboard_page_backup.txt
+eslint.config.mjs
+next.config.ts
+package-lock.json
+package.json
+postcss.config.mjs
+prisma\
+├── dev.db
+├── migrations\
+│   ├── 20250824124137_add_resource_to_analytics_event\
+│   │   └── migration.sql
+│   ├── 20250824134705_add_folder_model\
+│   │   └── migration.sql
+│   └── migration_lock.toml
+├── schema.prisma
+├── schema.prisma.backup
+└── seed.ts
+public\
+├── file.svg
+├── globe.svg
+├── next.svg
+├── vercel.svg
+└── window.svg
+scripts\
+├── setup-dev.bat
+├── setup-dev.sh
+├── start-collaboration.bat
+└── start-collaboration.sh
+server.js
+src\
+├── app\
+│   ├── admin\
+│   │   ├── audit\
+│   │   │   └── page.tsx
+│   │   └── page.tsx
+│   ├── api\
+│   │   ├── admin\
+│   │   │   └── roles\
+│   │   ├── audit\
+│   │   │   ├── logs\
+│   │   │   └── stats\
+│   │   ├── auth\
+│   │   │   ├── [...nextauth]\
+│   │   │   ├── register\
+│   │   │   └── user-data\
+│   │   ├── documents\
+│   │   │   ├── [id]\
+│   │   │   ├── convert\
+│   │   │   ├── route.test.ts
+│   │   │   └── route.ts
+│   │   ├── files\
+│   │   │   ├── [fileId]\
+│   │   │   ├── route.test.ts
+│   │   │   ├── route.ts
+│   │   │   └── upload\
+│   │   ├── folders\
+│   │   │   └── route.ts
+│   │   ├── images\
+│   │   │   └── resize\
+│   │   ├── ocr\
+│   │   │   ├── extract\
+│   │   │   └── route.ts
+│   │   ├── pdf\
+│   │   │   ├── compress\
+│   │   │   ├── convert\
+│   │   │   ├── edit\
+│   │   │   ├── merge\
+│   │   │   └── split\
+│   │   ├── processing\
+│   │   │   └── spreadsheet\
+│   │   └── users\
+│   │       └── me\
+│   ├── auth\
+│   │   ├── signin\
+│   │   │   └── page.tsx
+│   │   └── signup\
+│   │       └── page.tsx
+│   ├── collaborate\
+│   │   └── page.tsx
+│   ├── collaborative-demo\
+│   │   └── page.tsx
+│   ├── dashboard\
+│   │   ├── page.tsx
+│   │   └── spreadsheets\
+│   │       └── page.tsx
+│   ├── demo-layout.tsx
+│   ├── editor-demo\
+│   │   └── page.tsx
+│   ├── favicon.ico
+│   ├── files\
+│   │   └── page.tsx
+│   ├── globals.css
+│   ├── layout.tsx
+│   ├── metadata.tsx
+│   ├── middleware.ts
+│   ├── page.tsx
+│   ├── pdf\
+│   │   ├── edit\
+│   │   │   └── [fileId]\
+│   │   └── page.tsx
+│   └── tools\
+│       ├── page.tsx
+│       └── pdf-splitter\
+│           └── page.tsx
+├── components\
+│   ├── CollaborativeEditor.tsx
+│   ├── animated-counter.tsx
+│   ├── audit\
+│   │   └── AuditDashboard.tsx
+│   ├── auth\
+│   │   └── AuthGuard.tsx
+│   ├── background-effect.tsx
+│   ├── cta-section.tsx
+│   ├── documents\
+│   │   └── enhanced-document-editor.tsx
+│   ├── editor\
+│   │   ├── collaboration-cursor.tsx
+│   │   ├── editor-extensions\
+│   │   │   ├── collaboration.tsx
+│   │   │   ├── comments.tsx
+│   │   │   └── mentions.tsx
+│   │   ├── editor-menu.tsx
+│   │   ├── editor-toolbar.tsx
+│   │   └── rich-text-editor.tsx
+│   ├── features-section.tsx
+│   ├── files\
+│   │   ├── FileManager.tsx
+│   │   └── FileUpload.tsx
+│   ├── floating-element.tsx
+│   ├── footer.tsx
+│   ├── header.tsx
+│   ├── hero-section.tsx
+│   ├── mobile-navigation.tsx
+│   ├── navigation.tsx
+│   ├── pdf\
+│   │   ├── AnnotationCanvas.tsx
+│   │   ├── AnnotationSidebar.tsx
+│   │   ├── AnnotationToolbar.tsx
+│   │   ├── PDFEditor.tsx
+│   │   └── PageManager.tsx
+│   ├── social-proof.tsx
+│   ├── spreadsheet\
+│   │   └── SpreadsheetEngine.tsx
+│   ├── spreadsheets\
+│   │   └── spreadsheet-editor.tsx
+│   ├── theme\
+│   │   ├── ClientEnhancedThemeToggle.tsx
+│   │   ├── ClientThemeToggle.tsx
+│   │   ├── EnhancedThemeToggle.tsx
+│   │   ├── ThemeSettings.tsx
+│   │   └── ThemeToggle.tsx
+│   ├── tools\
+│   │   ├── DocumentConverter.tsx
+│   │   ├── OCRExtractor.tsx
+│   │   └── PDFSplitter.tsx
+│   └── ui\
+│       ├── alert.tsx
+│       ├── badge.tsx
+│       ├── button.tsx
+│       ├── card.tsx
+│       ├── collapsible.tsx
+│       ├── dialog.tsx
+│       ├── dropdown-menu.tsx
+│       ├── empty-state.tsx
+│       ├── error-boundary.tsx
+│       ├── glowing-button.tsx
+│       ├── input.tsx
+│       ├── label.tsx
+│       ├── link.tsx
+│       ├── loading-spinner.tsx
+│       ├── popover.tsx
+│       ├── progress.tsx
+│       ├── scroll-area.tsx
+│       ├── select.tsx
+│       ├── separator.tsx
+│       ├── skeleton.tsx
+│       ├── slider.tsx
+│       ├── table.tsx
+│       ├── tabs.tsx
+│       ├── textarea.tsx
+│       ├── toast.tsx
+│       ├── toggle.tsx
+│       └── tooltip.tsx
+├── contexts\
+│   └── ThemeContext.tsx
+├── lib\
+│   ├── api-client.ts
+│   ├── audit-logger.ts
+│   ├── auth-context.tsx
+│   ├── collaboration-server.ts
+│   ├── document-converter.ts
+│   ├── encrypted-storage.ts
+│   ├── encryption.ts
+│   ├── error-handler.ts
+│   ├── form-validation.ts
+│   ├── ocr-service.ts
+│   ├── pdf-annotations.ts
+│   ├── pdf-processor.ts
+│   ├── permissions.ts
+│   ├── prisma.ts
+│   ├── server.ts
+│   ├── utils.ts
+│   └── websocket-server.ts
+├── middleware\
+│   └── ...
+├── styles\
+│   └── ...
+└── types\
+    └── ...
+tailwind.config.ts
+transconfig.json
+transconfig.seed.json
+transconfig.server.json
+vitest.config.ts

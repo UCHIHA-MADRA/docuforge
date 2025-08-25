@@ -65,7 +65,9 @@ export default function EditorToolbar({ editor, className = "" }: EditorToolbarP
         className={`${editor.isActive("bold") ? "bg-gray-100" : ""}`}
         title="Bold"
       >
-        <Bold className="h-4 w-4" />
+        <span className="inline-flex items-center">
+          <Bold className="h-4 w-4" />
+        </span>
       </Button>
       
       <Button
