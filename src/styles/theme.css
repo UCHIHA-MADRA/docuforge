@@ -45,30 +45,207 @@
   --shadow-xl: 0 20px 25px -5px rgb(0 0 0 / 0.1), 0 8px 10px -6px rgb(0 0 0 / 0.1);
 }
 
-/* Dark theme overrides */
+/* Dark theme overrides - ensure these are properly applied */
 .dark {
-  --background: 2 6 23;
-  --foreground: 248 250 252;
-  --card: 2 6 23;
-  --card-foreground: 248 250 252;
-  --popover: 2 6 23;
-  --popover-foreground: 248 250 252;
-  --primary: 59 130 246;
-  --primary-foreground: 255 255 255;
-  --secondary: 30 41 59;
-  --secondary-foreground: 248 250 252;
-  --muted: 30 41 59;
-  --muted-foreground: 148 163 184;
-  --accent: 30 41 59;
-  --accent-foreground: 248 250 252;
-  --destructive: 239 68 68;
-  --destructive-foreground: 255 255 255;
-  --border: 30 41 59;
-  --input: 30 41 59;
-  --ring: 59 130 246;
-  --success: 34 197 94;
-  --warning: 251 191 36;
-  --info: 59 130 246;
+  /* Colors - Dark blue/purple theme */
+  --background: 15 23 42; /* Dark blue */
+  --foreground: 248 250 252; /* Light gray/white */
+  --card: 30 41 59; /* Darker blue */
+  --card-foreground: 248 250 252; /* Light gray/white */
+  --popover: 30 41 59; /* Darker blue */
+  --popover-foreground: 248 250 252; /* Light gray/white */
+  --primary: 147 51 234; /* Purple */
+  --primary-foreground: 255 255 255; /* White */
+  --secondary: 51 65 85; /* Medium dark blue */
+  --secondary-foreground: 248 250 252; /* Light gray/white */
+  --muted: 51 65 85; /* Medium dark blue */
+  --muted-foreground: 148 163 184; /* Medium gray */
+  --accent: 0 0 0; /* Black hover for outline/ghost */
+  --accent-foreground: 255 255 255; /* White text on hover */
+  --destructive: 239 68 68; /* Red */
+  --destructive-foreground: 255 255 255; /* White */
+  --border: 51 65 85; /* Medium dark blue */
+  --input: 51 65 85; /* Medium dark blue */
+  --ring: 147 51 234; /* Purple */
+  --success: 34 197 94; /* Green */
+  --warning: 251 191 36; /* Yellow */
+  --info: 59 130 246; /* Blue */
+  
+  /* Dark theme specific shadows */
+  --shadow-sm: 0 1px 2px 0 rgb(0 0 0 / 0.3);
+  --shadow: 0 1px 3px 0 rgb(0 0 0 / 0.4), 0 1px 2px -1px rgb(0 0 0 / 0.4);
+  --shadow-md: 0 4px 6px -1px rgb(0 0 0 / 0.4), 0 2px 4px -2px rgb(0 0 0 / 0.4);
+  --shadow-lg: 0 10px 15px -3px rgb(0 0 0 / 0.4), 0 4px 6px -4px rgb(0 0 0 / 0.4);
+  --shadow-xl: 0 20px 25px -5px rgb(0 0 0 / 0.4), 0 8px 10px -6px rgb(0 0 0 / 0.4);
+  
+  /* Dark theme color scheme */
+  color-scheme: dark;
+}
+
+/* Ensure dark theme is applied to html and body */
+.dark html,
+.dark body {
+  background-color: rgb(15 23 42) !important; /* Dark blue */
+  color: rgb(248 250 252) !important; /* Light gray/white */
+}
+
+/* Force dark theme on all elements when dark class is present */
+.dark * {
+  border-color: rgb(51 65 85) !important; /* Medium dark blue */
+}
+
+.dark .bg-background {
+  background-color: rgb(15 23 42) !important; /* Dark blue */
+}
+
+.dark .bg-card {
+  background-color: rgb(30 41 59) !important; /* Darker blue */
+}
+
+.dark .bg-popover {
+  background-color: rgb(30 41 59) !important; /* Darker blue */
+}
+
+.dark .bg-secondary {
+  background-color: rgb(51 65 85) !important; /* Medium dark blue */
+}
+
+.dark .bg-muted {
+  background-color: rgb(51 65 85) !important; /* Medium dark blue */
+}
+
+.dark .bg-accent {
+  background-color: rgb(51 65 85) !important; /* Medium dark blue */
+}
+
+.dark .text-foreground {
+  color: rgb(248 250 252) !important; /* Light gray/white */
+}
+
+.dark .text-card-foreground {
+  color: rgb(248 250 252) !important; /* Light gray/white */
+}
+
+.dark .text-popover-foreground {
+  color: rgb(248 250 252) !important; /* Light gray/white */
+}
+
+.dark .text-secondary-foreground {
+  color: rgb(248 250 252) !important; /* Light gray/white */
+}
+
+.dark .text-muted-foreground {
+  color: rgb(148 163 184) !important; /* Medium gray */
+}
+
+.dark .text-accent-foreground {
+  color: rgb(248 250 252) !important; /* Light gray/white */
+}
+
+.dark .border-border {
+  border-color: rgb(51 65 85) !important; /* Medium dark blue */
+}
+
+.dark .border-input {
+  border-color: rgb(51 65 85) !important; /* Medium dark blue */
+}
+
+/* Dark theme button styles */
+.dark .bg-primary { background-color: rgb(147 51 234) !important; }
+.dark .text-primary-foreground { color: rgb(255 255 255) !important; }
+.dark .bg-primary-foreground { background-color: rgb(30 41 59) !important; }
+.dark .text-primary { color: rgb(147 51 234) !important; }
+
+/* Dark theme button variants */
+.dark button[data-variant="default"],
+.dark .bg-blue-600,
+.dark .bg-blue-700 {
+  background-color: rgb(255 255 255) !important; /* White background */
+  color: rgb(15 23 42) !important; /* Dark blue text */
+  border: 1px solid rgb(51 65 85) !important; /* Medium dark blue border */
+}
+
+.dark button[data-variant="outline"],
+.dark .border-gray-300 {
+  background-color: transparent !important; /* Transparent background */
+  color: rgb(255 255 255) !important; /* White text */
+  border: 1px solid rgb(51 65 85) !important; /* Medium dark blue border */
+}
+
+.dark button[data-variant="ghost"] {
+  background-color: transparent !important; /* Transparent background */
+  color: rgb(248 250 252) !important; /* Light gray/white text */
+}
+
+.dark button[data-variant="ghost"]:hover {
+  background-color: rgb(51 65 85) !important; /* Medium dark blue on hover */
+}
+
+/* Dark theme button hover states */
+.dark button[data-variant="default"]:hover,
+.dark .bg-blue-600:hover,
+.dark .bg-blue-700:hover {
+  background-color: rgb(240 240 240) !important; /* Light gray on hover */
+}
+
+.dark button[data-variant="outline"]:hover {
+  background-color: rgb(51 65 85) !important; /* Medium dark blue on hover */
+  color: rgb(255 255 255) !important; /* White text on hover */
+}
+
+/* Dark theme gradient backgrounds */
+.dark .bg-gradient-to-br { background: linear-gradient(to bottom right, rgb(15 23 42), rgb(30 41 59)) !important; }
+.dark .from-primary\/5 { background: linear-gradient(to bottom right, rgb(15 23 42), rgb(30 41 59)) !important; }
+.dark .to-secondary\/5 { background: linear-gradient(to bottom right, rgb(15 23 42), rgb(30 41 59)) !important; }
+
+/* Additional dark theme overrides for specific elements */
+.dark .bg-slate-50,
+.dark .bg-blue-50 {
+  background-color: rgb(15 23 42) !important; /* Dark blue */
+}
+
+.dark .bg-white {
+  background-color: rgb(30 41 59) !important; /* Darker blue */
+}
+
+.dark .bg-gray-50,
+.dark .bg-gray-100 {
+  background-color: rgb(51 65 85) !important; /* Medium dark blue */
+}
+
+.dark .text-gray-900 {
+  color: rgb(248 250 252) !important; /* Light gray/white */
+}
+
+.dark .text-gray-600,
+.dark .text-gray-700 {
+  color: rgb(148 163 184) !important; /* Medium gray */
+}
+
+.dark .border-gray-200 {
+  border-color: rgb(51 65 85) !important; /* Medium dark blue */
+}
+
+/* Dark theme for specific sections */
+.dark .bg-muted {
+  background-color: rgb(51 65 85) !important; /* Medium dark blue */
+}
+
+.dark .bg-background {
+  background-color: rgb(15 23 42) !important; /* Dark blue */
+}
+
+/* Ensure all text is visible in dark mode */
+.dark h1, .dark h2, .dark h3, .dark h4, .dark h5, .dark h6 {
+  color: rgb(248 250 252) !important; /* Light gray/white */
+}
+
+.dark p, .dark span, .dark div {
+  color: rgb(248 250 252) !important; /* Light gray/white */
+}
+
+.dark .text-muted-foreground {
+  color: rgb(148 163 184) !important; /* Medium gray */
 }
 
 /* High contrast mode */
@@ -149,34 +326,6 @@ body {
 /* Add transitions to common UI elements */
 button, a, input, select, textarea, .card, .dropdown-menu, .popover, .dialog {
   transition: background-color 0.3s ease, color 0.3s ease, border-color 0.3s ease, box-shadow 0.3s ease, transform 0.2s ease;
-}
-
-/* Dark mode support */
-:root {
-  color-scheme: light;
-}
-
-.dark {
-  color-scheme: dark;
-  --background: 10 10 10;
-  --foreground: 230 230 230;
-  --card: 20 20 20;
-  --card-foreground: 230 230 230;
-  --popover: 20 20 20;
-  --popover-foreground: 230 230 230;
-  --primary: 142 142 160;
-  --primary-foreground: 20 20 20;
-  --secondary: 30 30 30;
-  --secondary-foreground: 230 230 230;
-  --muted: 30 30 30;
-  --muted-foreground: 160 160 160;
-  --accent: 30 30 30;
-  --accent-foreground: 230 230 230;
-  --destructive: 255 50 50;
-  --destructive-foreground: 250 250 250;
-  --border: 40 40 40;
-  --input: 30 30 30;
-  --ring: 142 142 160;
 }
 
 /* Component base styles */

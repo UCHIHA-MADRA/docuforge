@@ -66,29 +66,29 @@ const themeVariables = {
     '--info': '59 130 246',
   },
   dark: {
-    // Base colors
-    '--background': '2 6 23',
-    '--foreground': '248 250 252',
-    '--card': '2 6 23',
-    '--card-foreground': '248 250 252',
-    '--popover': '2 6 23',
-    '--popover-foreground': '248 250 252',
-    '--primary': '59 130 246',
-    '--primary-foreground': '255 255 255',
-    '--secondary': '30 41 59',
-    '--secondary-foreground': '248 250 252',
-    '--muted': '30 41 59',
-    '--muted-foreground': '148 163 184',
-    '--accent': '30 41 59',
-    '--accent-foreground': '248 250 252',
-    '--destructive': '239 68 68',
-    '--destructive-foreground': '255 255 255',
-    '--border': '30 41 59',
-    '--input': '30 41 59',
-    '--ring': '59 130 246',
-    '--success': '34 197 94',
-    '--warning': '251 191 36',
-    '--info': '59 130 246',
+    // Base colors - Dark blue/purple theme
+    '--background': '15 23 42', // Dark blue
+    '--foreground': '248 250 252', // Light gray/white
+    '--card': '30 41 59', // Darker blue
+    '--card-foreground': '248 250 252', // Light gray/white
+    '--popover': '30 41 59', // Darker blue
+    '--popover-foreground': '248 250 252', // Light gray/white
+    '--primary': '147 51 234', // Purple
+    '--primary-foreground': '255 255 255', // White
+    '--secondary': '51 65 85', // Medium dark blue
+    '--secondary-foreground': '248 250 252', // Light gray/white
+    '--muted': '51 65 85', // Medium dark blue
+    '--muted-foreground': '148 163 184', // Medium gray
+    '--accent': '51 65 85', // Medium dark blue
+    '--accent-foreground': '248 250 252', // Light gray/white
+    '--destructive': '239 68 68', // Red
+    '--destructive-foreground': '255 255 255', // White
+    '--border': '51 65 85', // Medium dark blue
+    '--input': '51 65 85', // Medium dark blue
+    '--ring': '147 51 234', // Purple
+    '--success': '34 197 94', // Green
+    '--warning': '251 191 36', // Yellow
+    '--info': '59 130 246', // Blue
   },
 };
 
@@ -187,15 +187,18 @@ export function ThemeProvider({ children }: { children: React.ReactNode }) {
     
     const handleChange = () => {
       if (theme.mode === 'system') {
-        setActualTheme(mediaQuery.matches ? 'dark' : 'light');
+        const newActualTheme = mediaQuery.matches ? 'dark' : 'light';
+        setActualTheme(newActualTheme);
       }
     };
 
     // Set initial theme
     if (theme.mode === 'system') {
-      setActualTheme(mediaQuery.matches ? 'dark' : 'light');
+      const systemTheme = mediaQuery.matches ? 'dark' : 'light';
+      setActualTheme(systemTheme);
     } else {
-      setActualTheme(theme.mode === 'dark' ? 'dark' : 'light');
+      const manualTheme = theme.mode === 'dark' ? 'dark' : 'light';
+      setActualTheme(manualTheme);
     }
 
     mediaQuery.addEventListener('change', handleChange);
@@ -250,6 +253,9 @@ export function ThemeProvider({ children }: { children: React.ReactNode }) {
     root.classList.remove('light', 'dark');
     root.classList.add(actualTheme);
 
+    // Also set data-theme attribute for additional CSS targeting
+    root.setAttribute('data-theme', actualTheme);
+
   }, [theme, actualTheme, mounted]);
 
   // Save theme to localStorage
@@ -272,9 +278,10 @@ export function ThemeProvider({ children }: { children: React.ReactNode }) {
   };
 
   const toggleTheme = () => {
+    const newMode = theme.mode === 'light' ? 'dark' : 'light';
     setTheme(prev => ({
       ...prev,
-      mode: prev.mode === 'light' ? 'dark' : prev.mode === 'dark' ? 'system' : 'light'
+      mode: newMode
     }));
   };
 
@@ -293,7 +300,18 @@ export function ThemeProvider({ children }: { children: React.ReactNode }) {
 
   // Don't render until mounted to avoid hydration mismatch
   if (!mounted) {
-    return <div style={{ visibility: 'hidden' }}>{children}</div>;
+    return (
+      <ThemeContext.Provider value={{
+        theme: defaultTheme,
+        actualTheme: 'light',
+        updateTheme: () => {},
+        resetTheme: () => {},
+        toggleTheme: () => {},
+        applyTheme: () => {},
+      }}>
+        <div style={{ visibility: 'hidden' }}>{children}</div>
+      </ThemeContext.Provider>
+    );
   }
 
   return (

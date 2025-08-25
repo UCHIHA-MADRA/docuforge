@@ -1,8 +1,9 @@
 "use client";
 
-import { Suspense, useState, useEffect } from 'react';
+import { useEffect, useState } from 'react';
 import { Button } from "@/components/ui/button";
-import { Sun, Moon } from "lucide-react";
+import { Sun, Moon, Monitor, Loader2 } from "lucide-react";
+import { useTheme } from "@/contexts/ThemeContext";
 
 interface ClientEnhancedThemeToggleProps {
   variant?: 'button' | 'dropdown' | 'icon';
@@ -12,41 +13,68 @@ interface ClientEnhancedThemeToggleProps {
 }
 
 export default function ClientEnhancedThemeToggle(props: ClientEnhancedThemeToggleProps) {
-  const [theme, setTheme] = useState<'light' | 'dark'>('light');
   const [mounted, setMounted] = useState(false);
+  const [isLoading, setIsLoading] = useState(false);
+  const { theme, updateTheme, actualTheme } = useTheme();
 
-  // Initialize theme from localStorage on client side
+  // Ensure component is mounted before rendering interactive UI
   useEffect(() => {
     setMounted(true);
-    const savedTheme = localStorage.getItem('theme');
-    if (savedTheme === 'dark' || 
-        (!savedTheme && window.matchMedia('(prefers-color-scheme: dark)').matches)) {
-      setTheme('dark');
-      document.documentElement.classList.add('dark');
-    } else {
-      setTheme('light');
-      document.documentElement.classList.remove('dark');
-    }
   }, []);
 
-  // Toggle theme function
-  const toggleTheme = () => {
-    const newTheme = theme === 'light' ? 'dark' : 'light';
-    setTheme(newTheme);
-    
-    // Update DOM
-    if (newTheme === 'dark') {
-      document.documentElement.classList.add('dark');
-    } else {
-      document.documentElement.classList.remove('dark');
-    }
-    
-    // Save to localStorage
-    localStorage.setItem('theme', newTheme);
-  };
+  if (!mounted) {
+    return (
+      <Button
+        variant="outline"
+        size="icon"
+        className={props.className}
+        disabled
+      >
+        <Loader2 className="h-4 w-4 animate-spin" />
+      </Button>
+    );
+  }
 
-  // Don't render anything until mounted to avoid hydration mismatch
-  if (!mounted) return null;
+    // Get the appropriate icon based on current theme mode
+    const getThemeIcon = () => {
+      if (isLoading) {
+        return <Loader2 className="h-4 w-4 animate-spin" />;
+      }
+      
+      switch (theme.mode) {
+        case 'light':
+          return <Sun className="h-4 w-4" />;
+        case 'dark':
+          return <Moon className="h-4 w-4" />;
+        case 'system':
+          return <Monitor className="h-4 w-4" />;
+        default:
+          return <Sun className="h-4 w-4" />;
+      }
+    };
+
+    // Get the label for the current theme mode
+    const getThemeLabel = () => {
+      switch (theme.mode) {
+        case 'light':
+          return 'Light';
+        case 'dark':
+          return 'Dark';
+        case 'system':
+          return 'System';
+        default:
+          return 'Light';
+      }
+    };
+
+  // Toggle between light and dark
+  const toggleTheme = async () => {
+    setIsLoading(true);
+    const newMode = theme.mode === 'light' ? 'dark' : 'light';
+    updateTheme({ mode: newMode });
+    await new Promise(resolve => setTimeout(resolve, 100));
+    setIsLoading(false);
+  };
 
   // Icon-only variant (default)
   return (
@@ -55,16 +83,13 @@ export default function ClientEnhancedThemeToggle(props: ClientEnhancedThemeTogg
       size="icon"
       onClick={toggleTheme}
       className={props.className}
-      aria-label={`Switch to ${theme === 'dark' ? 'light' : 'dark'} mode`}
-      title={`Switch to ${theme === 'dark' ? 'light' : 'dark'} mode`}
+      disabled={isLoading}
+      aria-label={`Switch theme (currently ${getThemeLabel()})`}
+      title={`Current theme: ${getThemeLabel()} (${actualTheme})`}
     >
-      {theme === 'dark' ? (
-        <Moon className="h-4 w-4" />
-      ) : (
-        <Sun className="h-4 w-4" />
-      )}
+      {getThemeIcon()}
       <span className="sr-only">
-        {theme === 'dark' ? 'Switch to light mode' : 'Switch to dark mode'}
+        Switch theme (currently {getThemeLabel()})
       </span>
     </Button>
   );
