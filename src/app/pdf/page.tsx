@@ -1,10 +1,10 @@
-'use client';
+"use client";
 
-import React, { useState } from 'react';
-import { useRouter } from 'next/navigation';
-import { useSession } from 'next-auth/react';
-import { toast } from 'sonner';
-import { auditHooks } from '@/middleware/audit';
+import React, { useState } from "react";
+import { useRouter } from "next/navigation";
+import { useSession } from "next-auth/react";
+import { toast } from "sonner";
+import { auditHooks } from "@/middleware/audit";
 import {
   FileText,
   Plus,
@@ -18,19 +18,36 @@ import {
   List,
   MoreVertical,
   Eye,
-} from 'lucide-react';
-import { Button } from '@/components/ui/button';
-import { Input } from '@/components/ui/input';
-import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
-import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from '@/components/ui/dialog';
-import { Label } from '@/components/ui/label';
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
-import { Badge } from '@/components/ui/badge';
-import { Separator } from '@/components/ui/separator';
-import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from '@/components/ui/dropdown-menu';
-import { Toggle } from '@/components/ui/toggle';
-import { AuthGuard } from '@/components/auth/AuthGuard';
-import PDFEditor from '@/components/pdf/PDFEditor';
+} from "lucide-react";
+import { Button } from "@/components/ui/button";
+import { Input } from "@/components/ui/input";
+import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import {
+  Dialog,
+  DialogContent,
+  DialogHeader,
+  DialogTitle,
+  DialogTrigger,
+} from "@/components/ui/dialog";
+import { Label } from "@/components/ui/label";
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select";
+import { Badge } from "@/components/ui/badge";
+import { Separator } from "@/components/ui/separator";
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuTrigger,
+} from "@/components/ui/dropdown-menu";
+import { Toggle } from "@/components/ui/toggle";
+import { AuthGuard } from "@/components/auth/AuthGuard";
+import PDFEditor from "@/components/pdf/PDFEditor";
 
 interface PDFFile {
   id: string;
@@ -49,13 +66,13 @@ const PDFManagementPage: React.FC = () => {
   const { data: session } = useSession();
   const [files, setFiles] = useState<PDFFile[]>([]);
   const [loading, setLoading] = useState(false);
-  const [searchQuery, setSearchQuery] = useState('');
-  const [viewMode, setViewMode] = useState<'grid' | 'list'>('grid');
+  const [searchQuery, setSearchQuery] = useState("");
+  const [viewMode, setViewMode] = useState<"grid" | "list">("grid");
   const [showCreateDialog, setShowCreateDialog] = useState(false);
   const [showEditorDialog, setShowEditorDialog] = useState(false);
-  const [newPdfTitle, setNewPdfTitle] = useState('');
-  const [newPdfAuthor, setNewPdfAuthor] = useState('');
-  const [selectedOrganization, setSelectedOrganization] = useState('');
+  const [newPdfTitle, setNewPdfTitle] = useState("");
+  const [newPdfAuthor, setNewPdfAuthor] = useState("");
+  const [selectedOrganization, setSelectedOrganization] = useState("");
   const [creating, setCreating] = useState(false);
 
   // Load PDF files
@@ -68,17 +85,17 @@ const PDFManagementPage: React.FC = () => {
   const loadPDFFiles = async () => {
     try {
       setLoading(true);
-      const response = await fetch('/api/files?mimeType=application/pdf');
+      const response = await fetch("/api/files?mimeType=application/pdf");
       const data = await response.json();
 
       if (response.ok && data.success) {
         setFiles(data.files || []);
       } else {
-        throw new Error(data.error || 'Failed to load PDF files');
+        throw new Error(data.error || "Failed to load PDF files");
       }
     } catch (error) {
-      console.error('Error loading PDF files:', error);
-      toast.error('Failed to load PDF files');
+      console.error("Error loading PDF files:", error);
+      toast.error("Failed to load PDF files");
     } finally {
       setLoading(false);
     }
@@ -88,15 +105,15 @@ const PDFManagementPage: React.FC = () => {
     try {
       setCreating(true);
 
-      const response = await fetch('/api/pdf/edit', {
-        method: 'POST',
+      const response = await fetch("/api/pdf/edit", {
+        method: "POST",
         headers: {
-          'Content-Type': 'application/json',
+          "Content-Type": "application/json",
         },
         body: JSON.stringify({
-          operation: 'create',
-          title: newPdfTitle || 'Untitled',
-          author: newPdfAuthor || session?.user?.name || 'Unknown',
+          operation: "create",
+          title: newPdfTitle || "Untitled",
+          author: newPdfAuthor || session?.user?.name || "Unknown",
           organizationId: selectedOrganization || undefined,
         }),
       });
@@ -104,25 +121,33 @@ const PDFManagementPage: React.FC = () => {
       const data = await response.json();
 
       if (!response.ok) {
-        throw new Error(data.error || 'Failed to create PDF');
+        throw new Error(data.error || "Failed to create PDF");
       }
 
       if (data.success) {
-        toast.success('PDF created successfully');
+        toast.success("PDF created successfully");
         setShowCreateDialog(false);
-        await auditHooks.logPdfCreate(session?.user?.id, data.fileId, 'PDF created');
-        setNewPdfTitle('');
-        setNewPdfAuthor('');
-        setSelectedOrganization('');
-        
+        if (session?.user?.id) {
+          await auditHooks.logPdfCreate(
+            session.user.id,
+            data.fileId,
+            "PDF created"
+          );
+        }
+        setNewPdfTitle("");
+        setNewPdfAuthor("");
+        setSelectedOrganization("");
+
         // Navigate to editor
         router.push(`/pdf/edit/${data.fileId}`);
       } else {
-        throw new Error(data.error || 'Failed to create PDF');
+        throw new Error(data.error || "Failed to create PDF");
       }
     } catch (error) {
-      console.error('Error creating PDF:', error);
-      toast.error(error instanceof Error ? error.message : 'Failed to create PDF');
+      console.error("Error creating PDF:", error);
+      toast.error(
+        error instanceof Error ? error.message : "Failed to create PDF"
+      );
     } finally {
       setCreating(false);
     }
@@ -135,38 +160,42 @@ const PDFManagementPage: React.FC = () => {
   const downloadPDF = async (fileId: string, filename: string) => {
     try {
       const response = await fetch(`/api/files/${fileId}/download`);
-      
+
       if (!response.ok) {
-        throw new Error('Failed to download file');
+        throw new Error("Failed to download file");
       }
 
       const blob = await response.blob();
       const url = URL.createObjectURL(blob);
-      const a = document.createElement('a');
+      const a = document.createElement("a");
       a.href = url;
       a.download = filename;
       document.body.appendChild(a);
       a.click();
       document.body.removeChild(a);
       URL.revokeObjectURL(url);
-      
-      toast.success('File downloaded successfully');
+
+      toast.success("File downloaded successfully");
     } catch (error) {
-      console.error('Error downloading file:', error);
-      toast.error('Failed to download file');
+      console.error("Error downloading file:", error);
+      toast.error("Failed to download file");
     }
   };
 
   const deletePDF = async (fileId: string) => {
-    if (!confirm('Are you sure you want to delete this PDF? This action cannot be undone.')) {
+    if (
+      !confirm(
+        "Are you sure you want to delete this PDF? This action cannot be undone."
+      )
+    ) {
       return;
     }
 
     try {
-      const response = await fetch('/api/files', {
-        method: 'DELETE',
+      const response = await fetch("/api/files", {
+        method: "DELETE",
         headers: {
-          'Content-Type': 'application/json',
+          "Content-Type": "application/json",
         },
         body: JSON.stringify({ fileIds: [fileId] }),
       });
@@ -174,61 +203,71 @@ const PDFManagementPage: React.FC = () => {
       const data = await response.json();
 
       if (!response.ok) {
-        throw new Error(data.error || 'Failed to delete file');
+        throw new Error(data.error || "Failed to delete file");
       }
 
       if (data.success) {
-        toast.success('PDF deleted successfully');
-        await auditHooks.logPdfDelete(session?.user?.id, fileId, 'PDF deleted');
+        toast.success("PDF deleted successfully");
+        if (session?.user?.id) {
+          await auditHooks.logPdfDelete(session.user.id, fileId, "PDF deleted");
+        }
         loadPDFFiles(); // Reload the list
       } else {
-        throw new Error(data.error || 'Failed to delete file');
+        throw new Error(data.error || "Failed to delete file");
       }
     } catch (error) {
-      console.error('Error deleting file:', error);
-      toast.error(error instanceof Error ? error.message : 'Failed to delete file');
+      console.error("Error deleting file:", error);
+      toast.error(
+        error instanceof Error ? error.message : "Failed to delete file"
+      );
     }
   };
 
-  const filteredFiles = files.filter(file =>
-    file.filename.toLowerCase().includes(searchQuery.toLowerCase()) ||
-    file.documentTitle?.toLowerCase().includes(searchQuery.toLowerCase())
+  const filteredFiles = files.filter(
+    (file) =>
+      file.filename.toLowerCase().includes(searchQuery.toLowerCase()) ||
+      file.documentTitle?.toLowerCase().includes(searchQuery.toLowerCase())
   );
 
   const formatFileSize = (bytes: number) => {
-    if (bytes === 0) return '0 Bytes';
+    if (bytes === 0) return "0 Bytes";
     const k = 1024;
-    const sizes = ['Bytes', 'KB', 'MB', 'GB'];
+    const sizes = ["Bytes", "KB", "MB", "GB"];
     const i = Math.floor(Math.log(bytes) / Math.log(k));
-    return parseFloat((bytes / Math.pow(k, i)).toFixed(2)) + ' ' + sizes[i];
+    return parseFloat((bytes / Math.pow(k, i)).toFixed(2)) + " " + sizes[i];
   };
 
   const formatDate = (dateString: string) => {
-    return new Date(dateString).toLocaleDateString('en-US', {
-      year: 'numeric',
-      month: 'short',
-      day: 'numeric',
-      hour: '2-digit',
-      minute: '2-digit',
+    return new Date(dateString).toLocaleDateString("en-US", {
+      year: "numeric",
+      month: "short",
+      day: "numeric",
+      hour: "2-digit",
+      minute: "2-digit",
     });
   };
 
   return (
-    <AuthGuard requireAuth>
+    <AuthGuard>
       <div className="min-h-screen bg-background">
         <div className="container mx-auto px-4 py-8">
           {/* Header */}
           <div className="mb-8">
             <div className="flex items-center justify-between mb-6">
               <div>
-                <h1 className="text-3xl font-bold tracking-tight">PDF Documents</h1>
+                <h1 className="text-3xl font-bold tracking-tight">
+                  PDF Documents
+                </h1>
                 <p className="text-muted-foreground">
                   Create, edit, and manage your PDF documents
                 </p>
               </div>
-              
+
               <div className="flex items-center gap-2">
-                <Dialog open={showCreateDialog} onOpenChange={setShowCreateDialog}>
+                <Dialog
+                  open={showCreateDialog}
+                  onOpenChange={setShowCreateDialog}
+                >
                   <DialogTrigger asChild>
                     <Button>
                       <Plus className="w-4 h-4 mr-2" />
@@ -259,8 +298,13 @@ const PDFManagementPage: React.FC = () => {
                         />
                       </div>
                       <div>
-                        <Label htmlFor="organization">Organization (Optional)</Label>
-                        <Select value={selectedOrganization} onValueChange={setSelectedOrganization}>
+                        <Label htmlFor="organization">
+                          Organization (Optional)
+                        </Label>
+                        <Select
+                          value={selectedOrganization}
+                          onValueChange={setSelectedOrganization}
+                        >
                           <SelectTrigger>
                             <SelectValue placeholder="Select organization" />
                           </SelectTrigger>
@@ -279,14 +323,17 @@ const PDFManagementPage: React.FC = () => {
                           Cancel
                         </Button>
                         <Button onClick={createNewPDF} disabled={creating}>
-                          {creating ? 'Creating...' : 'Create PDF'}
+                          {creating ? "Creating..." : "Create PDF"}
                         </Button>
                       </div>
                     </div>
                   </DialogContent>
                 </Dialog>
-                
-                <Dialog open={showEditorDialog} onOpenChange={setShowEditorDialog}>
+
+                <Dialog
+                  open={showEditorDialog}
+                  onOpenChange={setShowEditorDialog}
+                >
                   <DialogTrigger asChild>
                     <Button variant="outline">
                       <Edit3 className="w-4 h-4 mr-2" />
@@ -301,7 +348,7 @@ const PDFManagementPage: React.FC = () => {
                       <PDFEditor
                         onSave={(buffer) => {
                           // Handle save logic for quick editor
-                          toast.success('PDF saved successfully');
+                          toast.success("PDF saved successfully");
                           setShowEditorDialog(false);
                         }}
                         onError={(error) => {
@@ -326,18 +373,18 @@ const PDFManagementPage: React.FC = () => {
                   className="pl-10"
                 />
               </div>
-              
+
               <div className="flex items-center gap-2">
                 <Toggle
-                  pressed={viewMode === 'grid'}
-                  onPressedChange={() => setViewMode('grid')}
+                  pressed={viewMode === "grid"}
+                  onPressedChange={() => setViewMode("grid")}
                   size="sm"
                 >
                   <Grid className="w-4 h-4" />
                 </Toggle>
                 <Toggle
-                  pressed={viewMode === 'list'}
-                  onPressedChange={() => setViewMode('list')}
+                  pressed={viewMode === "list"}
+                  onPressedChange={() => setViewMode("list")}
                   size="sm"
                 >
                   <List className="w-4 h-4" />
@@ -359,12 +406,12 @@ const PDFManagementPage: React.FC = () => {
               <CardContent>
                 <FileText className="w-12 h-12 text-muted-foreground mx-auto mb-4" />
                 <h3 className="text-lg font-semibold mb-2">
-                  {searchQuery ? 'No PDFs found' : 'No PDF documents yet'}
+                  {searchQuery ? "No PDFs found" : "No PDF documents yet"}
                 </h3>
                 <p className="text-muted-foreground mb-4">
                   {searchQuery
-                    ? 'Try adjusting your search terms'
-                    : 'Create your first PDF document to get started'}
+                    ? "Try adjusting your search terms"
+                    : "Create your first PDF document to get started"}
                 </p>
                 {!searchQuery && (
                   <Button onClick={() => setShowCreateDialog(true)}>
@@ -374,10 +421,13 @@ const PDFManagementPage: React.FC = () => {
                 )}
               </CardContent>
             </Card>
-          ) : viewMode === 'grid' ? (
+          ) : viewMode === "grid" ? (
             <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6">
               {filteredFiles.map((file) => (
-                <Card key={file.id} className="hover:shadow-md transition-shadow">
+                <Card
+                  key={file.id}
+                  className="hover:shadow-md transition-shadow"
+                >
                   <CardHeader className="pb-3">
                     <div className="flex items-start justify-between">
                       <div className="flex items-center gap-2 flex-1 min-w-0">
@@ -404,7 +454,9 @@ const PDFManagementPage: React.FC = () => {
                             <Edit3 className="w-4 h-4 mr-2" />
                             Edit
                           </DropdownMenuItem>
-                          <DropdownMenuItem onClick={() => downloadPDF(file.id, file.filename)}>
+                          <DropdownMenuItem
+                            onClick={() => downloadPDF(file.id, file.filename)}
+                          >
                             <Download className="w-4 h-4 mr-2" />
                             Download
                           </DropdownMenuItem>
@@ -432,7 +484,9 @@ const PDFManagementPage: React.FC = () => {
                       </div>
                       {file.organizationName && (
                         <div className="flex items-center justify-between text-sm">
-                          <span className="text-muted-foreground">Organization:</span>
+                          <span className="text-muted-foreground">
+                            Organization:
+                          </span>
                           <Badge variant="secondary" className="text-xs">
                             {file.organizationName}
                           </Badge>
@@ -465,7 +519,10 @@ const PDFManagementPage: React.FC = () => {
               <CardContent className="p-0">
                 <div className="divide-y">
                   {filteredFiles.map((file) => (
-                    <div key={file.id} className="flex items-center gap-4 p-4 hover:bg-muted/50">
+                    <div
+                      key={file.id}
+                      className="flex items-center gap-4 p-4 hover:bg-muted/50"
+                    >
                       <FileText className="w-5 h-5 text-red-500 flex-shrink-0" />
                       <div className="flex-1 min-w-0">
                         <div className="flex items-center gap-2">

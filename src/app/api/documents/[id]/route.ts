@@ -6,8 +6,8 @@ import { z } from "zod";
 const updateSchema = z.object({
   title: z.string().min(1).max(255).optional(),
   content: z.string().optional(),
-  visibility: z.enum(["private", "public", "organization"]).optional(),
-  status: z.enum(["draft", "published", "archived", "deleted"]).optional(),
+  visibility: z.enum(["PRIVATE", "PUBLIC", "ORGANIZATION"]).optional(),
+  status: z.enum(["DRAFT", "PUBLISHED", "ARCHIVED", "DELETED"]).optional(),
 });
 
 export async function GET(
@@ -21,7 +21,7 @@ export async function GET(
     }
 
     const doc = await prisma.document.findFirst({
-      where: { id: params.id, authorId: session.user.id },
+      where: { id: params.id, userId: session.user.id },
       select: {
         id: true,
         title: true,
@@ -37,7 +37,10 @@ export async function GET(
     return NextResponse.json({ document: doc });
   } catch (error) {
     console.error("Error fetching document:", error);
-    return NextResponse.json({ error: "Internal server error" }, { status: 500 });
+    return NextResponse.json(
+      { error: "Internal server error" },
+      { status: 500 }
+    );
   }
 }
 
@@ -54,7 +57,10 @@ export async function PATCH(
     const body = await request.json().catch(() => null);
     const parsed = updateSchema.safeParse(body);
     if (!parsed.success) {
-      return NextResponse.json({ error: parsed.error.flatten() }, { status: 400 });
+      return NextResponse.json(
+        { error: parsed.error.flatten() },
+        { status: 400 }
+      );
     }
 
     const updated = await prisma.document.update({
@@ -63,7 +69,13 @@ export async function PATCH(
         ...parsed.data,
         // lightweight wordCount update if content provided
         ...(parsed.data.content
-          ? { wordCount: parsed.data.content.replace(/<[^>]*>/g, " ").trim().split(/\s+/).filter(Boolean).length }
+          ? {
+              wordCount: parsed.data.content
+                .replace(/<[^>]*>/g, " ")
+                .trim()
+                .split(/\s+/)
+                .filter(Boolean).length,
+            }
           : {}),
         lastEditedBy: session.user.id,
         lastEditedAt: new Date(),
@@ -82,7 +94,10 @@ export async function PATCH(
     return NextResponse.json({ document: updated });
   } catch (error) {
     console.error("Error updating document:", error);
-    return NextResponse.json({ error: "Internal server error" }, { status: 500 });
+    return NextResponse.json(
+      { error: "Internal server error" },
+      { status: 500 }
+    );
   }
 }
 
@@ -103,8 +118,9 @@ export async function DELETE(
     return NextResponse.json({ success: true });
   } catch (error) {
     console.error("Error deleting document:", error);
-    return NextResponse.json({ error: "Internal server error" }, { status: 500 });
+    return NextResponse.json(
+      { error: "Internal server error" },
+      { status: 500 }
+    );
   }
 }
-
-

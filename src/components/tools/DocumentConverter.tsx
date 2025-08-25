@@ -1,7 +1,7 @@
-'use client';
+"use client";
 
-import React, { useState, useCallback } from 'react';
-import { useDropzone } from 'react-dropzone';
+import React, { useState, useCallback } from "react";
+import { useDropzone } from "react-dropzone";
 import {
   Upload,
   FileText,
@@ -13,21 +13,26 @@ import {
   Loader2,
   X,
   RefreshCw,
-} from 'lucide-react';
-import { Button } from '@/components/ui/button';
-import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
-import { Label } from '@/components/ui/label';
-import { Input } from '@/components/ui/input';
-import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from '@/components/ui/dropdown-menu';
-import { auditHooks } from '@/middleware/audit';
-import { useAuth } from '@/lib/auth-context';
+} from "lucide-react";
+import { Button } from "@/components/ui/button";
+import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { Label } from "@/components/ui/label";
+import { Input } from "@/components/ui/input";
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuTrigger,
+} from "@/components/ui/dropdown-menu";
+import { auditHooks } from "@/middleware/audit";
+import { useAuth } from "@/lib/auth-context";
 import {
   Dialog,
   DialogTrigger,
   DialogContent,
   DialogHeader,
   DialogTitle,
-} from '@/components/ui/dialog';
+} from "@/components/ui/dialog";
 
 import {
   Select,
@@ -35,9 +40,9 @@ import {
   SelectValue,
   SelectContent,
   SelectItem,
-} from '@/components/ui/select';
+} from "@/components/ui/select";
 
-import { Slider } from '@/components/ui/slider';
+import { Slider } from "@/components/ui/slider";
 
 interface FileWithPreview extends File {
   preview?: string;
@@ -57,8 +62,8 @@ interface ConversionResult {
 }
 
 const SUPPORTED_FORMATS = {
-  input: ['pdf', 'png', 'jpg', 'jpeg', 'webp', 'tiff', 'docx', 'xlsx', 'pptx'],
-  output: ['pdf', 'png', 'jpg', 'jpeg', 'webp', 'tiff'],
+  input: ["pdf", "png", "jpg", "jpeg", "webp", "tiff", "docx", "xlsx", "pptx", "txt", "odt", "rtf", "html", "md", "latex", "epub", "xml"],
+  output: ["pdf", "png", "jpg", "jpeg", "webp", "tiff", "docx", "txt", "odt", "rtf", "html", "md", "latex", "epub", "xml"],
 };
 
 const FORMAT_ICONS = {
@@ -71,42 +76,64 @@ const FORMAT_ICONS = {
   docx: FileText,
   xlsx: FileText,
   pptx: FileText,
+  txt: FileText,
+  odt: FileText,
+  rtf: FileText,
+  html: FileText,
+  md: FileText,
+  latex: FileText,
+  epub: FileText,
+  xml: FileText,
 };
 
 export default function DocumentConverter() {
   const { user } = useAuth();
   const [files, setFiles] = useState<FileWithPreview[]>([]);
-  const [outputFormat, setOutputFormat] = useState<string>('pdf');
+  const [outputFormat, setOutputFormat] = useState<string>("pdf");
   const [quality, setQuality] = useState<number>(90);
   const [dpi, setDpi] = useState<number>(300);
-  const [pages, setPages] = useState<string>('');
-  const [compression, setCompression] = useState<string>('lzw');
+  const [pages, setPages] = useState<string>("");
+  const [compression, setCompression] = useState<string>("lzw");
   const [isConverting, setIsConverting] = useState(false);
   const [results, setResults] = useState<ConversionResult[]>([]);
-  const [error, setError] = useState<string>('');
+  const [error, setError] = useState<string>("");
   const [showAdvanced, setShowAdvanced] = useState(false);
 
   const onDrop = useCallback((acceptedFiles: File[]) => {
     const newFiles = acceptedFiles.map((file) => {
       const fileWithPreview = Object.assign(file, {
         id: `${file.name}-${Date.now()}`,
-        preview: file.type.startsWith('image/') ? URL.createObjectURL(file) : undefined,
+        preview: file.type.startsWith("image/")
+          ? URL.createObjectURL(file)
+          : undefined,
       }) as FileWithPreview;
       return fileWithPreview;
     });
-    
+
     setFiles((prev) => [...prev, ...newFiles]);
-    setError('');
+    setError("");
   }, []);
 
   const { getRootProps, getInputProps, isDragActive } = useDropzone({
     onDrop,
     accept: {
-      'application/pdf': ['.pdf'],
-      'image/*': ['.png', '.jpg', '.jpeg', '.webp', '.tiff'],
-      'application/vnd.openxmlformats-officedocument.wordprocessingml.document': ['.docx'],
-      'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet': ['.xlsx'],
-      'application/vnd.openxmlformats-officedocument.presentationml.presentation': ['.pptx'],
+      "application/pdf": [".pdf"],
+      "image/*": [".png", ".jpg", ".jpeg", ".webp", ".tiff"],
+      "application/vnd.openxmlformats-officedocument.wordprocessingml.document":
+        [".docx"],
+      "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet": [
+        ".xlsx",
+      ],
+      "application/vnd.openxmlformats-officedocument.presentationml.presentation":
+        [".pptx"],
+      "text/plain": [".txt"],
+      "application/vnd.oasis.opendocument.text": [".odt"],
+      "application/rtf": [".rtf"],
+      "text/html": [".html"],
+      "text/markdown": [".md"],
+      "application/x-latex": [".latex", ".tex"],
+      "application/epub+zip": [".epub"],
+      "application/xml": [".xml"],
     },
     maxSize: 50 * 1024 * 1024, // 50MB
     multiple: true,
@@ -132,35 +159,35 @@ export default function DocumentConverter() {
     });
     setFiles([]);
     setResults([]);
-    setError('');
+    setError("");
   };
 
   const convertDocuments = async () => {
     if (files.length === 0) {
-      setError('Please select at least one file to convert');
+      setError("Please select at least one file to convert");
       return;
     }
 
     setIsConverting(true);
-    setError('');
+    setError("");
     setResults([]);
 
     try {
       const conversionPromises = files.map(async (file) => {
         const formData = new FormData();
-        formData.append('file', file);
-        formData.append('format', outputFormat);
-        formData.append('quality', quality.toString());
-        formData.append('dpi', dpi.toString());
+        formData.append("file", file);
+        formData.append("format", outputFormat);
+        formData.append("quality", quality.toString());
+        formData.append("dpi", dpi.toString());
         if (pages.trim()) {
-          formData.append('pages', pages.trim());
+          formData.append("pages", pages.trim());
         }
-        if (outputFormat === 'tiff') {
-          formData.append('compression', compression);
+        if (outputFormat === "tiff") {
+          formData.append("compression", compression);
         }
 
-        const response = await fetch('/api/documents/convert', {
-          method: 'POST',
+        const response = await fetch("/api/documents/convert", {
+          method: "POST",
           body: formData,
         });
 
@@ -171,30 +198,33 @@ export default function DocumentConverter() {
 
         // Get metadata from headers
         const metadata = {
-          originalFormat: response.headers.get('X-Original-Format') || 'unknown',
-          targetFormat: response.headers.get('X-Target-Format') || outputFormat,
-          fileSize: parseInt(response.headers.get('X-File-Size') || '0', 10),
-          pageCount: response.headers.get('X-Page-Count') 
-            ? parseInt(response.headers.get('X-Page-Count')!, 10) 
+          originalFormat:
+            response.headers.get("X-Original-Format") || "unknown",
+          targetFormat: response.headers.get("X-Target-Format") || outputFormat,
+          fileSize: parseInt(response.headers.get("X-File-Size") || "0", 10),
+          pageCount: response.headers.get("X-Page-Count")
+            ? parseInt(response.headers.get("X-Page-Count")!, 10)
             : undefined,
         };
 
         // Create download URL
         const blob = await response.blob();
         const downloadUrl = URL.createObjectURL(blob);
-        const originalName = file.name.replace(/\.[^/.]+$/, '');
-        const extension = outputFormat === 'jpg' ? 'jpg' : outputFormat;
+        const originalName = file.name.replace(/\.[^/.]+$/, "");
+        const extension = outputFormat === "jpg" ? "jpg" : outputFormat;
         const filename = `${originalName}.${extension}`;
-
-
-
-        
-
 
         // Assuming user is available from useAuth hook in the parent component
         // For now, user is undefined in this component, so user?.id will be undefined.
         // A proper implementation would involve passing user as a prop or using a context/hook.
-        await auditHooks.logDocumentConversion(user?.id, file.name, outputFormat, filename);
+        if (user?.id) {
+          await auditHooks.logDocumentConversion(
+            user.id,
+            file.name,
+            outputFormat,
+            filename
+          );
+        }
 
         return {
           success: true,
@@ -209,7 +239,7 @@ export default function DocumentConverter() {
       const errors: string[] = [];
 
       results.forEach((result, index) => {
-        if (result.status === 'fulfilled') {
+        if (result.status === "fulfilled") {
           successfulResults.push(result.value);
         } else {
           errors.push(`${files[index].name}: ${result.reason.message}`);
@@ -217,9 +247,9 @@ export default function DocumentConverter() {
       });
 
       setResults(successfulResults);
-      
+
       if (errors.length > 0) {
-        setError(`Some conversions failed:\n${errors.join('\n')}`);
+        setError(`Some conversions failed:\n${errors.join("\n")}`);
       }
     } catch (error) {
       setError(`Conversion failed: ${(error as Error).message}`);
@@ -229,7 +259,7 @@ export default function DocumentConverter() {
   };
 
   const downloadFile = (result: ConversionResult) => {
-    const link = document.createElement('a');
+    const link = document.createElement("a");
     link.href = result.downloadUrl;
     link.download = result.filename;
     document.body.appendChild(link);
@@ -244,26 +274,30 @@ export default function DocumentConverter() {
   };
 
   const getFileIcon = (filename: string) => {
-    const extension = filename.split('.').pop()?.toLowerCase() || '';
-    const IconComponent = FORMAT_ICONS[extension as keyof typeof FORMAT_ICONS] || FileText;
+    const extension = filename.split(".").pop()?.toLowerCase() || "";
+    const IconComponent =
+      FORMAT_ICONS[extension as keyof typeof FORMAT_ICONS] || FileText;
     return <IconComponent className="w-5 h-5" />;
   };
 
   const formatFileSize = (bytes: number) => {
-    if (bytes === 0) return '0 Bytes';
+    if (bytes === 0) return "0 Bytes";
     const k = 1024;
-    const sizes = ['Bytes', 'KB', 'MB', 'GB'];
+    const sizes = ["Bytes", "KB", "MB", "GB"];
     const i = Math.floor(Math.log(bytes) / Math.log(k));
-    return parseFloat((bytes / Math.pow(k, i)).toFixed(2)) + ' ' + sizes[i];
+    return parseFloat((bytes / Math.pow(k, i)).toFixed(2)) + " " + sizes[i];
   };
 
   return (
     <div className="space-y-6">
       {/* Header */}
       <div className="text-center">
-        <h2 className="text-2xl font-bold text-gray-900 mb-2">Document Converter</h2>
+        <h2 className="text-2xl font-bold text-gray-900 mb-2">
+          Document Converter
+        </h2>
         <p className="text-gray-600">
-          Convert between PDF, images, and Office documents with professional quality
+          Convert between PDF, images, and Office documents with professional
+          quality
         </p>
       </div>
 
@@ -280,19 +314,20 @@ export default function DocumentConverter() {
             {...getRootProps()}
             className={`border-2 border-dashed rounded-lg p-8 text-center cursor-pointer transition-colors ${
               isDragActive
-                ? 'border-blue-400 bg-blue-50'
-                : 'border-gray-300 hover:border-gray-400'
+                ? "border-blue-400 bg-blue-50"
+                : "border-gray-300 hover:border-gray-400"
             }`}
           >
             <input {...getInputProps()} />
             <Upload className="w-12 h-12 text-gray-400 mx-auto mb-4" />
             <p className="text-lg font-medium text-gray-700 mb-2">
               {isDragActive
-                ? 'Drop files here...'
-                : 'Drag & drop files here, or click to select'}
+                ? "Drop files here..."
+                : "Drag & drop files here, or click to select"}
             </p>
             <p className="text-sm text-gray-500">
-              Supports PDF, images (PNG, JPG, WebP, TIFF), and Office documents (DOCX, XLSX, PPTX)
+              Supports PDF, images (PNG, JPG, WebP, TIFF), Office documents
+              (DOCX, XLSX, PPTX), and text formats (TXT, HTML, MD, XML, LaTeX, ODT, RTF, EPUB)
             </p>
             <p className="text-xs text-gray-400 mt-2">
               Maximum file size: 50MB per file
@@ -357,7 +392,7 @@ export default function DocumentConverter() {
               <Settings className="w-5 h-5" />
               Conversion Settings
             </div>
-            <Dialog.Root open={showAdvanced} onOpenChange={setShowAdvanced}>
+            <Dialog open={showAdvanced} onOpenChange={setShowAdvanced}>
               <DialogTrigger asChild>
                 <Button variant="outline" size="sm">
                   Advanced Options
@@ -377,14 +412,18 @@ export default function DocumentConverter() {
                       onChange={(e) => setPages(e.target.value)}
                     />
                     <p className="text-xs text-gray-500 mt-1">
-                      Leave empty for all pages. Use commas and ranges (e.g., 1,3,5-10)
+                      Leave empty for all pages. Use commas and ranges (e.g.,
+                      1,3,5-10)
                     </p>
                   </div>
-                  
-                  {outputFormat === 'tiff' && (
+
+                  {outputFormat === "tiff" && (
                     <div>
                       <Label htmlFor="compression">TIFF Compression</Label>
-                      <Select value={compression} onValueChange={setCompression}>
+                      <Select
+                        value={compression}
+                        onValueChange={setCompression}
+                      >
                         <SelectTrigger>
                           <SelectValue />
                         </SelectTrigger>
@@ -396,7 +435,7 @@ export default function DocumentConverter() {
                       </Select>
                     </div>
                   )}
-                  
+
                   <div>
                     <Label htmlFor="dpi">DPI (for image output): {dpi}</Label>
                     <Slider
@@ -416,7 +455,7 @@ export default function DocumentConverter() {
                   </div>
                 </div>
               </DialogContent>
-            </Dialog.Root>
+            </Dialog>
           </CardTitle>
         </CardHeader>
         <CardContent className="space-y-4">
@@ -426,20 +465,46 @@ export default function DocumentConverter() {
               <DropdownMenu>
                 <DropdownMenuTrigger asChild>
                   <Button variant="outline" className="w-full justify-between">
-                    {outputFormat ? outputFormat.toUpperCase() : 'Select format'}
+                    {outputFormat
+                      ? outputFormat.toUpperCase()
+                      : "Select format"}
                   </Button>
                 </DropdownMenuTrigger>
                 <DropdownMenuContent className="w-full">
-                  {SUPPORTED_FORMATS.output.map((format) => (
-                    <DropdownMenuItem key={format} onClick={() => setOutputFormat(format)}>
+                  <div className="p-2 text-xs font-semibold text-gray-500">Document Formats</div>
+                  {["pdf", "docx", "odt", "rtf", "epub"].map((format) => (
+                    <DropdownMenuItem
+                      key={format}
+                      onClick={() => setOutputFormat(format)}
+                    >
+                      {format.toUpperCase()}
+                    </DropdownMenuItem>
+                  ))}
+                  
+                  <div className="p-2 text-xs font-semibold text-gray-500">Image Formats</div>
+                  {["png", "jpg", "jpeg", "webp", "tiff"].map((format) => (
+                    <DropdownMenuItem
+                      key={format}
+                      onClick={() => setOutputFormat(format)}
+                    >
+                      {format.toUpperCase()}
+                    </DropdownMenuItem>
+                  ))}
+                  
+                  <div className="p-2 text-xs font-semibold text-gray-500">Text Formats</div>
+                  {["txt", "html", "md", "xml", "latex"].map((format) => (
+                    <DropdownMenuItem
+                      key={format}
+                      onClick={() => setOutputFormat(format)}
+                    >
                       {format.toUpperCase()}
                     </DropdownMenuItem>
                   ))}
                 </DropdownMenuContent>
               </DropdownMenu>
             </div>
-            
-            {['jpg', 'jpeg', 'webp'].includes(outputFormat) && (
+
+            {["jpg", "jpeg", "webp"].includes(outputFormat) && (
               <div>
                 <Label htmlFor="quality">Quality: {quality}%</Label>
                 <input
@@ -519,14 +584,16 @@ export default function DocumentConverter() {
                       {result.metadata && (
                         <div className="flex items-center gap-2 mt-1">
                           <span className="inline-flex items-center px-2 py-1 rounded-full text-xs font-medium bg-gray-100 text-gray-800">
-                            {result.metadata.originalFormat.toUpperCase()} → {result.metadata.targetFormat.toUpperCase()}
+                            {result.metadata.originalFormat.toUpperCase()} →{" "}
+                            {result.metadata.targetFormat.toUpperCase()}
                           </span>
                           <span className="text-xs text-gray-500">
                             {formatFileSize(result.metadata.fileSize)}
                           </span>
                           {result.metadata.pageCount && (
                             <span className="text-xs text-gray-500">
-                              {result.metadata.pageCount} page{result.metadata.pageCount !== 1 ? 's' : ''}
+                              {result.metadata.pageCount} page
+                              {result.metadata.pageCount !== 1 ? "s" : ""}
                             </span>
                           )}
                         </div>
@@ -548,6 +615,5 @@ export default function DocumentConverter() {
         </Card>
       )}
     </div>
-
   );
 }

@@ -1,15 +1,11 @@
-import { NextRequest, NextResponse } from 'next/server';
-import { getServerSession } from 'next-auth';
-import { authOptions } from '../auth/[...nextauth]/route';
-import { z } from 'zod';
-import {
-  listUserFiles,
-  deleteEncryptedFile,
-  getStorageStats,
-} from '@/lib/encrypted-storage';
-import { getUserWithRoles, hasPermission } from '@/lib/permissions';
-import { prisma } from '@/lib/prisma';
-import crypto from 'crypto';
+import { NextRequest, NextResponse } from "next/server";
+import { getServerSession } from "next-auth";
+import { authOptions } from "../auth/[...nextauth]/route";
+import { z } from "zod";
+import { deleteEncryptedFile, getStorageStats } from "@/lib/encrypted-storage";
+import { getUserWithRoles, hasPermission } from "@/lib/permissions";
+import { prisma } from "@/lib/prisma";
+import crypto from "crypto";
 
 const listFilesSchema = z.object({
   page: z.coerce.number().min(1).default(1),
@@ -17,8 +13,10 @@ const listFilesSchema = z.object({
   mimeType: z.string().optional(),
   search: z.string().optional(),
   organizationId: z.string().optional(),
-  sortBy: z.enum(['name', 'size', 'createdAt', 'updatedAt']).default('createdAt'),
-  sortOrder: z.enum(['asc', 'desc']).default('desc'),
+  sortBy: z
+    .enum(["name", "size", "createdAt", "updatedAt"])
+    .default("createdAt"),
+  sortOrder: z.enum(["asc", "desc"]).default("desc"),
 });
 
 const deleteFileSchema = z.object({
@@ -32,35 +30,33 @@ export async function GET(request: NextRequest): Promise<NextResponse> {
     const session = await getServerSession(authOptions);
     if (!session?.user?.id) {
       return NextResponse.json(
-        { error: 'Authentication required' },
+        { error: "Authentication required" },
         { status: 401 }
       );
     }
 
     const userWithRoles = await getUserWithRoles(session.user.id);
     if (!userWithRoles) {
-      return NextResponse.json(
-        { error: 'User not found' },
-        { status: 404 }
-      );
+      return NextResponse.json({ error: "User not found" }, { status: 404 });
     }
 
     // Parse query parameters
     const url = new URL(request.url);
     const queryParams = Object.fromEntries(url.searchParams.entries());
-    
+
     let params;
     try {
       params = listFilesSchema.parse(queryParams);
     } catch (error) {
+      console.error("Invalid query parameters:", error);
       return NextResponse.json(
-        { error: 'Invalid query parameters' },
+        { error: "Invalid query parameters" },
         { status: 400 }
       );
     }
 
     // Build database query
-    const where: any = {
+    const where: Record<string, unknown> = {
       userId: session.user.id,
     };
 
@@ -73,13 +69,19 @@ export async function GET(request: NextRequest): Promise<NextResponse> {
         {
           filename: {
             contains: params.search,
-            mode: 'insensitive',
+            mode: "insensitive",
+          },
+        },
+        {
+          name: {
+            contains: params.search,
+            mode: "insensitive",
           },
         },
         {
           originalName: {
             contains: params.search,
-            mode: 'insensitive',
+            mode: "insensitive",
           },
         },
       ];
@@ -88,12 +90,12 @@ export async function GET(request: NextRequest): Promise<NextResponse> {
     // Add organization filter if specified and user has access
     if (params.organizationId) {
       const hasOrgAccess = userWithRoles.organizationRoles.some(
-        role => role.organizationId === params.organizationId
+        (role) => role.organizationId === params.organizationId
       );
-      
+
       if (!hasOrgAccess) {
         return NextResponse.json(
-          { error: 'Access denied to organization' },
+          { error: "Access denied to organization" },
           { status: 403 }
         );
       }
@@ -107,7 +109,7 @@ export async function GET(request: NextRequest): Promise<NextResponse> {
 
     // Execute query with pagination
     const skip = (params.page - 1) * params.limit;
-    const orderBy: any = {};
+    const orderBy: Record<string, string> = {};
     orderBy[params.sortBy] = params.sortOrder;
 
     const [files, totalCount] = await Promise.all([
@@ -116,33 +118,23 @@ export async function GET(request: NextRequest): Promise<NextResponse> {
         skip,
         take: params.limit,
         orderBy,
-        include: {
-          Document: {
-            select: {
-              id: true,
-              title: true,
-              organizationId: true,
-              visibility: true,
-            },
-          },
-        },
+        include: {},
       }),
       prisma.file.count({ where }),
     ]);
 
     // Format response
-    const formattedFiles = files.map(file => ({
+    const formattedFiles = files.map((file) => ({
       id: file.id,
-      filename: file.filename,
+      filename: file.filename || file.name,
       originalName: file.originalName,
       mimeType: file.mimeType,
       size: file.size,
       checksum: file.checksum,
       createdAt: file.createdAt,
       updatedAt: file.updatedAt,
-      lastAccessedAt: file.lastAccessedAt,
+      lastAccessedAt: file.lastAccessed,
       processingStatus: file.processingStatus,
-      documents: file.documents,
     }));
 
     // Get storage statistics
@@ -158,11 +150,10 @@ export async function GET(request: NextRequest): Promise<NextResponse> {
       },
       stats,
     });
-
   } catch (error) {
-    console.error('List files error:', error);
+    console.error("List files error:", error);
     return NextResponse.json(
-      { error: 'Failed to list files' },
+      { error: "Failed to list files" },
       { status: 500 }
     );
   }
@@ -174,17 +165,14 @@ export async function DELETE(request: NextRequest): Promise<NextResponse> {
     const session = await getServerSession(authOptions);
     if (!session?.user?.id) {
       return NextResponse.json(
-        { error: 'Authentication required' },
+        { error: "Authentication required" },
         { status: 401 }
       );
     }
 
     const userWithRoles = await getUserWithRoles(session.user.id);
     if (!userWithRoles) {
-      return NextResponse.json(
-        { error: 'User not found' },
-        { status: 404 }
-      );
+      return NextResponse.json({ error: "User not found" }, { status: 404 });
     }
 
     // Parse request body
@@ -193,8 +181,9 @@ export async function DELETE(request: NextRequest): Promise<NextResponse> {
       const requestBody = await request.json();
       body = deleteFileSchema.parse(requestBody);
     } catch (error) {
+      console.error("Invalid request body:", error);
       return NextResponse.json(
-        { error: 'Invalid request body' },
+        { error: "Invalid request body" },
         { status: 400 }
       );
     }
@@ -212,10 +201,7 @@ export async function DELETE(request: NextRequest): Promise<NextResponse> {
     });
 
     if (!fileRecord) {
-      return NextResponse.json(
-        { error: 'File not found' },
-        { status: 404 }
-      );
+      return NextResponse.json({ error: "File not found" }, { status: 404 });
     }
 
     // Check permissions
@@ -230,16 +216,16 @@ export async function DELETE(request: NextRequest): Promise<NextResponse> {
     if (!canDelete && fileRecord.documents.length > 0) {
       for (const document of fileRecord.documents) {
         const collaboration = document.collaborators.find(
-          collab => collab.userId === session.user.id
+          (collab) => collab.userId === session.user.id
         );
-        
+
         if (collaboration) {
-          const canDeleteDoc = hasPermission(
-            userWithRoles,
-            'document:delete',
-            { documentId: document.id, collaborationRole: collaboration.role }
-          );
-          
+          const canDeleteDoc = hasPermission(userWithRoles, "document:delete", {
+            documentId: document.id,
+            // @ts-expect-error - collaborationRole is used internally by hasPermission
+            collaborationRole: collaboration.role,
+          });
+
           if (canDeleteDoc) {
             canDelete = true;
             break;
@@ -250,17 +236,14 @@ export async function DELETE(request: NextRequest): Promise<NextResponse> {
 
     // 3. Admin can delete any file
     if (!canDelete) {
-      const isAdmin = hasPermission(userWithRoles, 'admin:file_management');
+      const isAdmin = hasPermission(userWithRoles, "admin:file_management");
       if (isAdmin) {
         canDelete = true;
       }
     }
 
     if (!canDelete) {
-      return NextResponse.json(
-        { error: 'Permission denied' },
-        { status: 403 }
-      );
+      return NextResponse.json({ error: "Permission denied" }, { status: 403 });
     }
 
     // Delete associated documents first
@@ -280,29 +263,28 @@ export async function DELETE(request: NextRequest): Promise<NextResponse> {
       data: {
         id: crypto.randomUUID(),
         userId: session.user.id,
-        eventType: 'file_delete',
-        resourceType: 'file',
-        resourceId: body.fileId,
+        event: "file_delete",
+        category: "file",
         metadata: {
-          fileName: fileRecord.filename,
-          fileSize: fileRecord.size,
+          fileName: fileRecord.originalName,
+          fileSize: Number(fileRecord.size),
           mimeType: fileRecord.mimeType,
           deletedBy: session.user.id,
           fileOwner: fileRecord.userId,
           reason: body.reason,
+          fileId: body.fileId, // Store fileId in metadata instead
         },
       },
     });
 
     return NextResponse.json({
       success: true,
-      message: 'File deleted successfully',
+      message: "File deleted successfully",
     });
-
   } catch (error) {
-    console.error('Delete file error:', error);
+    console.error("Delete file error:", error);
     return NextResponse.json(
-      { error: 'Failed to delete file' },
+      { error: "Failed to delete file" },
       { status: 500 }
     );
   }
@@ -314,7 +296,7 @@ export async function PATCH(request: NextRequest): Promise<NextResponse> {
     const session = await getServerSession(authOptions);
     if (!session?.user?.id) {
       return NextResponse.json(
-        { error: 'Authentication required' },
+        { error: "Authentication required" },
         { status: 401 }
       );
     }
@@ -331,8 +313,9 @@ export async function PATCH(request: NextRequest): Promise<NextResponse> {
       const requestBody = await request.json();
       body = updateSchema.parse(requestBody);
     } catch (error) {
+      console.error("Invalid request body:", error);
       return NextResponse.json(
-        { error: 'Invalid request body' },
+        { error: "Invalid request body" },
         { status: 400 }
       );
     }
@@ -343,31 +326,28 @@ export async function PATCH(request: NextRequest): Promise<NextResponse> {
     });
 
     if (!fileRecord) {
-      return NextResponse.json(
-        { error: 'File not found' },
-        { status: 404 }
-      );
+      return NextResponse.json({ error: "File not found" }, { status: 404 });
     }
 
     // Check if user owns the file or is admin
     const userWithRoles = await getUserWithRoles(session.user.id);
     const isOwner = fileRecord.userId === session.user.id;
-    const isAdmin = userWithRoles ? hasPermission(userWithRoles, 'admin:file_management') : false;
+    const isAdmin = userWithRoles
+      ? hasPermission(userWithRoles, "admin:file_management")
+      : false;
 
     if (!isOwner && !isAdmin) {
-      return NextResponse.json(
-        { error: 'Permission denied' },
-        { status: 403 }
-      );
+      return NextResponse.json({ error: "Permission denied" }, { status: 403 });
     }
 
     // Update file metadata
-    const updateData: any = {
+    const updateData: Record<string, unknown> = {
       updatedAt: new Date(),
     };
 
     if (body.filename) {
       updateData.filename = body.filename;
+      updateData.name = body.filename; // Update both fields for consistency
     }
 
     const updatedFile = await prisma.file.update({
@@ -380,13 +360,13 @@ export async function PATCH(request: NextRequest): Promise<NextResponse> {
       data: {
         id: crypto.randomUUID(),
         userId: session.user.id,
-        eventType: 'file_update',
-        resourceType: 'file',
-        resourceId: body.fileId,
+        event: "file_update",
+        category: "file",
         metadata: {
-          fileName: updatedFile.filename,
-          changes: Object.keys(updateData),
+          fileName: updatedFile.filename || updatedFile.originalName,
+          changes: Object.keys(updateData).filter((key) => key !== "updatedAt"),
           updatedBy: session.user.id,
+          fileId: body.fileId, // Store fileId in metadata instead
         },
       },
     });
@@ -402,14 +382,11 @@ export async function PATCH(request: NextRequest): Promise<NextResponse> {
         updatedAt: updatedFile.updatedAt,
       },
     });
-
   } catch (error) {
-    console.error('Update file error:', error);
+    console.error("Update file error:", error);
     return NextResponse.json(
-      { error: 'Failed to update file' },
+      { error: "Failed to update file" },
       { status: 500 }
     );
   }
 }
-
-

@@ -1,4 +1,15 @@
 import { NextRequest, NextResponse } from 'next/server';
+
+interface UserSession {
+  id: string;
+  email: string;
+  role: 'ADMIN' | 'SUPER_ADMIN' | string;
+}
+
+function getIpAddress(request: NextRequest): string {
+  const xForwardedFor = request.headers.get('x-forwarded-for');
+  return xForwardedFor?.split(',')[0].trim() || 'unknown';
+}
 import { getServerSession } from 'next-auth';
 import { authOptions } from '../../auth/[...nextauth]/route';
 import { auditLogger, AuditEventType, RiskLevel } from '@/lib/audit-logger';
@@ -12,7 +23,7 @@ export async function GET(request: NextRequest) {
     // Check if user is authenticated and has admin role
     if (!session?.user) {
       await auditHooks.logUnauthorizedAccess(
-        request.ip || 'unknown',
+        getIpAddress(request),
         request.headers.get('user-agent') || 'unknown',
         '/api/audit/logs'
       );
@@ -20,10 +31,10 @@ export async function GET(request: NextRequest) {
     }
     
     // Check if user has admin privileges (you may need to adjust this based on your user model)
-    const userRole = (session.user as any).role;
+    const userRole = (session.user as UserSession).role;
     if (userRole !== 'ADMIN' && userRole !== 'SUPER_ADMIN') {
       await auditHooks.logUnauthorizedAccess(
-        request.ip || 'unknown',
+        getIpAddress(request),
         request.headers.get('user-agent') || 'unknown',
         '/api/audit/logs'
       );
@@ -55,12 +66,12 @@ export async function GET(request: NextRequest) {
     await auditLogger.log({
       eventType: AuditEventType.SYSTEM_ERROR, // You might want to create AUDIT_QUERY event type
       userId: session.user.id,
-      userEmail: session.user.email,
-      ipAddress: request.ip,
-      userAgent: request.headers.get('user-agent'),
+      userEmail: session.user.email ?? undefined,
+      ipAddress: getIpAddress(request),
+      userAgent: request.headers.get('user-agent') ?? undefined,
       action: 'Queried audit logs',
       details: {
-        filters,
+        filters: JSON.stringify(filters),
         resultCount: logs.length,
         type: 'audit_query'
       },
@@ -86,9 +97,9 @@ export async function GET(request: NextRequest) {
       await auditLogger.log({
         eventType: AuditEventType.SYSTEM_ERROR,
         userId: session?.user?.id,
-        userEmail: session?.user?.email,
-        ipAddress: request.ip,
-        userAgent: request.headers.get('user-agent'),
+        userEmail: session?.user?.email ?? undefined,
+        ipAddress: getIpAddress(request),
+        userAgent: request.headers.get('user-agent') ?? undefined,
         action: 'Failed to query audit logs',
         details: {
           error: error instanceof Error ? error.message : 'Unknown error',
@@ -119,7 +130,7 @@ export async function POST(request: NextRequest) {
       return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
     }
     
-    const userRole = (session.user as any).role;
+    const userRole = (session.user as UserSession).role;
     if (userRole !== 'ADMIN' && userRole !== 'SUPER_ADMIN') {
       return NextResponse.json({ error: 'Insufficient permissions' }, { status: 403 });
     }
@@ -146,9 +157,9 @@ export async function POST(request: NextRequest) {
     await auditLogger.log({
       eventType,
       userId: session.user.id,
-      userEmail: session.user.email,
-      ipAddress: request.ip,
-      userAgent: request.headers.get('user-agent'),
+      userEmail: session.user.email ?? undefined,
+      ipAddress: getIpAddress(request),
+      userAgent: request.headers.get('user-agent') ?? undefined,
       resourceId,
       resourceType,
       action,

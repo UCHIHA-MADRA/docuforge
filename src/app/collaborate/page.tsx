@@ -3,21 +3,21 @@
 import { useState, useEffect } from "react";
 import { useAuth } from "@/lib/auth-context";
 import { useRouter } from "next/navigation";
-import CollaborativeEditor from "@/components/CollaborativeEditor";
+import { CollaborativeEditor } from "@/components/CollaborativeEditor";
 import { Button } from "@/components/ui/button";
 import {
   Users,
   FileText,
   Plus,
-  Settings,
-  Share2,
   Eye,
   EyeOff,
   Copy,
   CheckCircle,
   AlertCircle,
+  Share2,
+  Settings,
 } from "lucide-react";
-import { auditHooks } from '@/middleware/audit';
+import { auditHooks } from "@/middleware/audit";
 
 interface DocumentItem {
   id: string;
@@ -29,11 +29,22 @@ interface DocumentItem {
   collaborators: number;
 }
 
+interface ApiDocumentItem {
+  id: string;
+  title: string;
+  content?: string;
+  createdAt: string;
+  updatedAt: string;
+  visibility: string;
+}
+
 export default function CollaboratePage() {
   const { user, loading } = useAuth();
   const router = useRouter();
   const [documents, setDocuments] = useState<DocumentItem[]>([]);
-  const [selectedDocument, setSelectedDocument] = useState<DocumentItem | null>(null);
+  const [selectedDocument, setSelectedDocument] = useState<DocumentItem | null>(
+    null
+  );
   const [showCreateForm, setShowCreateForm] = useState(false);
   const [newDocumentTitle, setNewDocumentTitle] = useState("");
   const [isCreating, setIsCreating] = useState(false);
@@ -45,16 +56,16 @@ export default function CollaboratePage() {
     const load = async () => {
       if (!user) return;
       try {
-        const res = await fetch('/api/documents', { cache: 'no-store' });
-        if (!res.ok) throw new Error('Failed to load documents');
+        const res = await fetch("/api/documents", { cache: "no-store" });
+        if (!res.ok) throw new Error("Failed to load documents");
         const data = await res.json();
-        const items: DocumentItem[] = (data.documents || []).map((d: any) => ({
+        const items: DocumentItem[] = (data.documents || []).map((d: ApiDocumentItem) => ({
           id: d.id,
           title: d.title,
-          content: d.content || '',
+          content: d.content || "",
           createdAt: new Date(d.createdAt),
           updatedAt: new Date(d.updatedAt),
-          isPublic: d.visibility === 'public',
+          isPublic: d.visibility === "public",
           collaborators: 1,
         }));
         setDocuments(items);
@@ -82,32 +93,34 @@ export default function CollaboratePage() {
     setError("");
 
     try {
-      const res = await fetch('/api/documents', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
+      const res = await fetch("/api/documents", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
           title: newDocumentTitle,
           content: `<h1>${newDocumentTitle}</h1><p>Start collaborating on this document!</p>`,
         }),
       });
-      if (!res.ok) throw new Error('Failed');
+      if (!res.ok) throw new Error("Failed");
       const data = await res.json();
       const d = data.document;
-      await auditHooks.logDocumentCreation(user.id, d.id, d.title);
+      if (user) {
+        await auditHooks.logDocumentCreation(user.id, d.id, d.title);
+      }
       const newDoc: DocumentItem = {
         id: d.id,
         title: d.title,
-        content: d.content || '',
+        content: d.content || "",
         createdAt: new Date(d.createdAt),
         updatedAt: new Date(d.updatedAt),
-        isPublic: d.visibility === 'public',
+        isPublic: d.visibility === "public",
         collaborators: 1,
       };
-      setDocuments(prev => [newDoc, ...prev]);
+      setDocuments((prev) => [newDoc, ...prev]);
       setSelectedDocument(newDoc);
       setNewDocumentTitle("");
       setShowCreateForm(false);
-    } catch (error) {
+    } catch (_unused) {
       setError("Failed to create document");
     } finally {
       setIsCreating(false);
@@ -125,11 +138,9 @@ export default function CollaboratePage() {
   };
 
   const toggleDocumentVisibility = (docId: string) => {
-    setDocuments(prev => 
-      prev.map(doc => 
-        doc.id === docId 
-          ? { ...doc, isPublic: !doc.isPublic }
-          : doc
+    setDocuments((prev) =>
+      prev.map((doc) =>
+        doc.id === docId ? { ...doc, isPublic: !doc.isPublic } : doc
       )
     );
   };
@@ -138,30 +149,47 @@ export default function CollaboratePage() {
     if (!selectedDocument) return;
 
     try {
-      const res = await fetch(`/api/documents/${selectedDocument.id}` , {
-        method: 'PATCH',
-        headers: { 'Content-Type': 'application/json' },
+      const res = await fetch(`/api/documents/${selectedDocument.id}`, {
+        method: "PATCH",
+        headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ content }),
       });
-      if (!res.ok) throw new Error('Failed to save');
-      await auditHooks.logDocumentEdit(user.id, selectedDocument.id, selectedDocument.title, { content_length: content.length });
+      if (!res.ok) throw new Error("Failed to save");
+      if (user) {
+        await auditHooks.logDocumentEdit(
+          user.id,
+          selectedDocument.id,
+          selectedDocument.title,
+          { content_length: content.length }
+        );
+      }
       const updatedAt = new Date();
-      setDocuments(prev => prev.map(doc => doc.id === selectedDocument.id ? { ...doc, content, updatedAt } : doc));
-      setSelectedDocument(prev => prev ? { ...prev, content, updatedAt } : null);
+      setDocuments((prev) =>
+        prev.map((doc) =>
+          doc.id === selectedDocument.id ? { ...doc, content, updatedAt } : doc
+        )
+      );
+      setSelectedDocument((prev) =>
+        prev ? { ...prev, content, updatedAt } : null
+      );
     } catch (error) {
       console.error("Failed to save document:", error);
     }
   };
 
-  const deleteDocument = async (documentId: string) => {
+  // Keeping this function for future implementation
+  // This function is for future implementation
+  const _deleteDocument = async (_documentId: string) => {
     try {
-      const res = await fetch(`/api/documents/${documentId}`, {
-        method: 'DELETE',
+      const res = await fetch(`/api/documents/${_documentId}`, {
+        method: "DELETE",
       });
-      if (!res.ok) throw new Error('Failed to delete');
-      await auditHooks.logDocumentDelete(user.id, documentId);
-      setDocuments(prev => prev.filter(doc => doc.id !== documentId));
-      if (selectedDocument && selectedDocument.id === documentId) {
+      if (!res.ok) throw new Error("Failed to delete");
+      if (user) {
+        await auditHooks.logDocumentDelete(user.id, _documentId);
+      }
+      setDocuments((prev) => prev.filter((doc) => doc.id !== _documentId));
+      if (selectedDocument && selectedDocument.id === _documentId) {
         setSelectedDocument(null);
       }
     } catch (error) {
@@ -189,15 +217,17 @@ export default function CollaboratePage() {
           <div className="flex justify-between items-center h-16">
             <div className="flex items-center space-x-4">
               <Users className="h-8 w-8 text-blue-600" />
-              <span className="text-xl font-bold text-gray-900">Collaborate</span>
+              <span className="text-xl font-bold text-gray-900">
+                Collaborate
+              </span>
             </div>
-            
+
             <div className="flex items-center space-x-4">
               <span className="text-sm text-gray-600">
                 Welcome, {user.name || user.email}
               </span>
-              <Button 
-                variant="outline" 
+              <Button
+                variant="outline"
                 size="sm"
                 onClick={() => router.push("/dashboard")}
               >
@@ -218,11 +248,12 @@ export default function CollaboratePage() {
                   Collaborative Documents
                 </h1>
                 <p className="text-lg text-gray-600">
-                  Create and collaborate on documents in real-time with your team
+                  Create and collaborate on documents in real-time with your
+                  team
                 </p>
               </div>
-              
-              <Button 
+
+              <Button
                 onClick={() => setShowCreateForm(true)}
                 className="flex items-center space-x-2"
               >
@@ -237,10 +268,13 @@ export default function CollaboratePage() {
                 <h3 className="text-lg font-semibold text-gray-900 mb-4">
                   Create New Document
                 </h3>
-                
+
                 <div className="space-y-4">
                   <div>
-                    <label htmlFor="title" className="block text-sm font-medium text-gray-700 mb-2">
+                    <label
+                      htmlFor="title"
+                      className="block text-sm font-medium text-gray-700 mb-2"
+                    >
                       Document Title
                     </label>
                     <input
@@ -250,7 +284,7 @@ export default function CollaboratePage() {
                       onChange={(e) => setNewDocumentTitle(e.target.value)}
                       placeholder="Enter document title..."
                       className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent"
-                      onKeyPress={(e) => e.key === 'Enter' && createDocument()}
+                      onKeyPress={(e) => e.key === "Enter" && createDocument()}
                     />
                   </div>
 
@@ -264,14 +298,14 @@ export default function CollaboratePage() {
                   )}
 
                   <div className="flex items-center space-x-3">
-                    <Button 
+                    <Button
                       onClick={createDocument}
                       disabled={isCreating || !newDocumentTitle.trim()}
                     >
-                      {isCreating ? 'Creating...' : 'Create Document'}
+                      {isCreating ? "Creating..." : "Create Document"}
                     </Button>
-                    
-                    <Button 
+
+                    <Button
                       variant="outline"
                       onClick={() => {
                         setShowCreateForm(false);
@@ -289,7 +323,7 @@ export default function CollaboratePage() {
             {/* Documents Grid */}
             <div className="grid md:grid-cols-2 lg:grid-cols-3 gap-6">
               {documents.map((doc) => (
-                <div 
+                <div
                   key={doc.id}
                   className="bg-white rounded-lg shadow-lg border border-gray-200 p-6 hover:shadow-xl transition-shadow cursor-pointer"
                   onClick={() => setSelectedDocument(doc)}
@@ -312,7 +346,7 @@ export default function CollaboratePage() {
                           <EyeOff className="h-4 w-4 text-gray-600" />
                         )}
                       </Button>
-                      
+
                       <Button
                         variant="ghost"
                         size="sm"
@@ -345,25 +379,28 @@ export default function CollaboratePage() {
                       <div className="flex items-center space-x-2">
                         <Users className="h-4 w-4 text-gray-600" />
                         <span className="text-sm text-gray-600">
-                          {doc.collaborators} collaborator{doc.collaborators !== 1 ? 's' : ''}
+                          {doc.collaborators} collaborator
+                          {doc.collaborators !== 1 ? "s" : ""}
                         </span>
                       </div>
 
                       <div className="flex items-center space-x-1">
-                        <div className={`w-2 h-2 rounded-full ${
-                          doc.isPublic ? 'bg-green-500' : 'bg-gray-400'
-                        }`}></div>
+                        <div
+                          className={`w-2 h-2 rounded-full ${
+                            doc.isPublic ? "bg-green-500" : "bg-gray-400"
+                          }`}
+                        ></div>
                         <span className="text-xs text-gray-500">
-                          {doc.isPublic ? 'Public' : 'Private'}
+                          {doc.isPublic ? "Public" : "Private"}
                         </span>
                       </div>
                     </div>
                   </div>
 
                   <div className="mt-4 pt-4 border-t border-gray-200">
-                    <Button 
-                      variant="outline" 
-                      size="sm" 
+                    <Button
+                      variant="outline"
+                      size="sm"
                       className="w-full"
                       onClick={(e) => {
                         e.stopPropagation();
@@ -397,14 +434,14 @@ export default function CollaboratePage() {
           <div>
             <div className="flex items-center justify-between mb-6">
               <div className="flex items-center space-x-4">
-                <Button 
+                <Button
                   variant="outline"
                   onClick={() => setSelectedDocument(null)}
                   className="flex items-center space-x-2"
                 >
                   ← Back to Documents
                 </Button>
-                
+
                 <div>
                   <h1 className="text-2xl font-bold text-gray-900">
                     {selectedDocument.title}
@@ -420,7 +457,7 @@ export default function CollaboratePage() {
                   <Share2 className="h-4 w-4 mr-2" />
                   Share
                 </Button>
-                
+
                 <Button variant="outline" size="sm">
                   <Settings className="h-4 w-4 mr-2" />
                   Settings
@@ -431,8 +468,8 @@ export default function CollaboratePage() {
             {/* Collaborative Editor */}
             <CollaborativeEditor
               documentId={selectedDocument.id}
-              userId={user.id || user.email || 'anonymous'}
-              userName={user.name || user.email || 'Anonymous User'}
+              userId={user.id || user.email || "anonymous"}
+              userName={user.name || user.email || "Anonymous User"}
               initialContent={selectedDocument.content}
               onSave={handleSave}
             />

@@ -7,106 +7,103 @@ export interface User {
 import { prisma } from "@/lib/prisma";
 
 // Permission types for different resources
-export type Permission = 
-  | 'document:create'
-  | 'document:read'
-  | 'document:update'
-  | 'document:delete'
-  | 'document:share'
-  | 'document:collaborate'
-  | 'file:upload'
-  | 'file:download'
-  | 'file:delete'
-  | 'file:share'
-  | 'organization:create'
-  | 'organization:manage'
-  | 'organization:invite'
-  | 'organization:remove_member'
-  | 'admin:user_management'
-  | 'admin:system_settings'
-  | 'admin:audit_logs';
+export type Permission =
+  | "document:create"
+  | "document:read"
+  | "document:update"
+  | "document:edit"
+  | "document:delete"
+  | "document:share"
+  | "document:collaborate"
+  | "file:upload"
+  | "file:download"
+  | "file:delete"
+  | "file:share"
+  | "file:view"
+  | "organization:create"
+  | "organization:manage"
+  | "organization:invite"
+  | "organization:remove_member"
+  | "admin:user_management"
+  | "admin:file_management"
+  | "admin:files"
+  | "admin:system_settings"
+  | "admin:audit_logs";
 
 // Role definitions with their permissions
 export const ROLE_PERMISSIONS: Record<string, Permission[]> = {
   // Document collaboration roles
-  viewer: [
-    'document:read',
-    'file:download'
-  ],
-  commenter: [
-    'document:read',
-    'document:collaborate',
-    'file:download'
-  ],
+  viewer: ["document:read", "file:download"],
+  commenter: ["document:read", "document:collaborate", "file:download"],
   editor: [
-    'document:read',
-    'document:update',
-    'document:collaborate',
-    'file:upload',
-    'file:download'
+    "document:read",
+    "document:update",
+    "document:collaborate",
+    "file:upload",
+    "file:download",
   ],
-  
+
   // Organization roles
   member: [
-    'document:create',
-    'document:read',
-    'document:update',
-    'document:delete',
-    'document:share',
-    'document:collaborate',
-    'file:upload',
-    'file:download',
-    'file:delete',
-    'file:share'
+    "document:create",
+    "document:read",
+    "document:update",
+    "document:delete",
+    "document:share",
+    "document:collaborate",
+    "file:upload",
+    "file:download",
+    "file:delete",
+    "file:share",
   ],
   moderator: [
-    'document:create',
-    'document:read',
-    'document:update',
-    'document:delete',
-    'document:share',
-    'document:collaborate',
-    'file:upload',
-    'file:download',
-    'file:delete',
-    'file:share',
-    'organization:invite'
+    "document:create",
+    "document:read",
+    "document:update",
+    "document:delete",
+    "document:share",
+    "document:collaborate",
+    "file:upload",
+    "file:download",
+    "file:delete",
+    "file:share",
+    "organization:invite",
   ],
   admin: [
-    'document:create',
-    'document:read',
-    'document:update',
-    'document:delete',
-    'document:share',
-    'document:collaborate',
-    'file:upload',
-    'file:download',
-    'file:delete',
-    'file:share',
-    'organization:create',
-    'organization:manage',
-    'organization:invite',
-    'organization:remove_member'
+    "document:create",
+    "document:read",
+    "document:update",
+    "document:delete",
+    "document:share",
+    "document:collaborate",
+    "file:upload",
+    "file:download",
+    "file:delete",
+    "file:share",
+    "organization:create",
+    "organization:manage",
+    "organization:invite",
+    "organization:remove_member",
   ],
   owner: [
-    'document:create',
-    'document:read',
-    'document:update',
-    'document:delete',
-    'document:share',
-    'document:collaborate',
-    'file:upload',
-    'file:download',
-    'file:delete',
-    'file:share',
-    'organization:create',
-    'organization:manage',
-    'organization:invite',
-    'organization:remove_member',
-    'admin:user_management',
-    'admin:system_settings',
-    'admin:audit_logs'
-  ]
+    "document:create",
+    "document:read",
+    "document:update",
+    "document:delete",
+    "document:share",
+    "document:collaborate",
+    "file:upload",
+    "file:download",
+    "file:delete",
+    "file:share",
+    "organization:create",
+    "organization:manage",
+    "organization:invite",
+    "organization:remove_member",
+    "admin:user_management",
+    "admin:system_settings",
+    "admin:audit_logs",
+  ],
 };
 
 // User context with roles
@@ -135,9 +132,12 @@ export function hasPermission(
   // Check document-specific permissions
   if (context?.documentId) {
     const documentRole = user.documentRoles.find(
-      role => role.documentId === context.documentId
+      (role) => role.documentId === context.documentId
     );
-    if (documentRole && ROLE_PERMISSIONS[documentRole.role]?.includes(permission)) {
+    if (
+      documentRole &&
+      ROLE_PERMISSIONS[documentRole.role]?.includes(permission)
+    ) {
       return true;
     }
   }
@@ -145,7 +145,7 @@ export function hasPermission(
   // Check organization-specific permissions
   if (context?.organizationId) {
     const orgRole = user.organizationRoles.find(
-      role => role.organizationId === context.organizationId
+      (role) => role.organizationId === context.organizationId
     );
     if (orgRole && ROLE_PERMISSIONS[orgRole.role]?.includes(permission)) {
       return true;
@@ -171,7 +171,7 @@ export function hasAllPermissions(
     documentId?: string;
   }
 ): boolean {
-  return permissions.every(permission => 
+  return permissions.every((permission) =>
     hasPermission(user, permission, context)
   );
 }
@@ -185,13 +185,15 @@ export function hasAnyPermission(
     documentId?: string;
   }
 ): boolean {
-  return permissions.some(permission => 
+  return permissions.some((permission) =>
     hasPermission(user, permission, context)
   );
 }
 
 // Fetch user with all roles from database
-export async function getUserWithRoles(userId: string): Promise<UserWithRoles | null> {
+export async function getUserWithRoles(
+  userId: string
+): Promise<UserWithRoles | null> {
   try {
     const user = await prisma.user.findUnique({
       where: { id: userId },
@@ -199,20 +201,20 @@ export async function getUserWithRoles(userId: string): Promise<UserWithRoles | 
         id: true,
         email: true,
         name: true,
-        image: true,
+        avatar: true,
         organizations: {
           select: {
             organizationId: true,
-            role: true
-          }
+            role: true,
+          },
         },
         documentCollaborations: {
           select: {
             documentId: true,
-            role: true
-          }
-        }
-      }
+            role: true,
+          },
+        },
+      },
     });
 
     if (!user) return null;
@@ -221,18 +223,18 @@ export async function getUserWithRoles(userId: string): Promise<UserWithRoles | 
       id: user.id,
       email: user.email,
       name: user.name,
-      image: user.image,
-      organizationRoles: user.organizations.map(org => ({
+      image: user.avatar,
+      organizationRoles: user.organizations.map((org) => ({
         organizationId: org.organizationId,
-        role: org.role
+        role: org.role,
       })),
-      documentRoles: user.documentCollaborations.map(doc => ({
+      documentRoles: user.documentCollaborations.map((doc) => ({
         documentId: doc.documentId,
-        role: doc.role
-      }))
+        role: doc.role,
+      })),
     };
   } catch (error) {
-    console.error('Error fetching user with roles:', error);
+    console.error("Error fetching user with roles:", error);
     return null;
   }
 }
@@ -241,35 +243,41 @@ export async function getUserWithRoles(userId: string): Promise<UserWithRoles | 
 export async function canAccessDocument(
   userId: string,
   documentId: string,
-  requiredPermission: Permission = 'document:read'
+  requiredPermission: Permission = "document:read"
 ): Promise<boolean> {
   try {
     const document = await prisma.document.findUnique({
       where: { id: documentId },
       select: {
-        authorId: true,
+        userId: true,
         visibility: true,
         organizationId: true,
         collaborators: {
           where: { userId },
-          select: { role: true }
-        }
-      }
+          select: { role: true },
+        },
+      },
     });
 
     if (!document) return false;
 
     // Document author has full access
-    if (document.authorId === userId) return true;
+    if (document.userId === userId) return true;
 
     // Public documents can be read by anyone
-    if (document.visibility === 'public' && requiredPermission === 'document:read') {
+    if (
+      document.visibility === "PUBLIC" &&
+      requiredPermission === "document:read"
+    ) {
       return true;
     }
 
     // Check direct collaboration permissions
     const collaboration = document.collaborators[0];
-    if (collaboration && ROLE_PERMISSIONS[collaboration.role]?.includes(requiredPermission)) {
+    if (
+      collaboration &&
+      ROLE_PERMISSIONS[collaboration.role]?.includes(requiredPermission)
+    ) {
       return true;
     }
 
@@ -279,14 +287,31 @@ export async function canAccessDocument(
       if (userWithRoles) {
         return hasPermission(userWithRoles, requiredPermission, {
           organizationId: document.organizationId,
-          documentId
+          documentId,
         });
       }
     }
 
     return false;
   } catch (error) {
-    console.error('Error checking document access:', error);
+    console.error("Error checking document access:", error);
+    return false;
+  }
+}
+
+// Check if user has a specific permission
+export async function checkPermission(
+  userId: string,
+  requiredPermission: Permission,
+  context?: { organizationId?: string; documentId?: string }
+): Promise<boolean> {
+  try {
+    const userWithRoles = await getUserWithRoles(userId);
+    if (!userWithRoles) return false;
+
+    return hasPermission(userWithRoles, requiredPermission, context);
+  } catch (error) {
+    console.error("Error checking permission:", error);
     return false;
   }
 }
@@ -302,10 +327,10 @@ export async function canAccessOrganization(
     if (!userWithRoles) return false;
 
     return hasPermission(userWithRoles, requiredPermission, {
-      organizationId
+      organizationId,
     });
   } catch (error) {
-    console.error('Error checking organization access:', error);
+    console.error("Error checking organization access:", error);
     return false;
   }
 }
@@ -322,19 +347,19 @@ export async function logPermissionCheck(
     await prisma.analyticsEvent.create({
       data: {
         userId,
-        event: 'permission_check',
-        category: 'security',
+        event: "permission_check",
+        category: "security",
         metadata: JSON.stringify({
           permission,
           resource,
           granted,
           context,
-          timestamp: new Date().toISOString()
-        })
-      }
+          timestamp: new Date().toISOString(),
+        }),
+      },
     });
   } catch (error) {
-    console.error('Error logging permission check:', error);
+    console.error("Error logging permission check:", error);
   }
 }
 
@@ -347,7 +372,7 @@ export function getRoleHierarchy(): Record<string, number> {
     member: 4,
     moderator: 5,
     admin: 6,
-    owner: 7
+    owner: 7,
   };
 }
 
@@ -373,25 +398,25 @@ export async function getEffectivePermissions(
   // Add permissions from document roles
   if (context?.documentId) {
     const documentRole = userWithRoles.documentRoles.find(
-      role => role.documentId === context.documentId
+      (role) => role.documentId === context.documentId
     );
     if (documentRole) {
-      ROLE_PERMISSIONS[documentRole.role]?.forEach(p => permissions.add(p));
+      ROLE_PERMISSIONS[documentRole.role]?.forEach((p) => permissions.add(p));
     }
   }
 
   // Add permissions from organization roles
   if (context?.organizationId) {
     const orgRole = userWithRoles.organizationRoles.find(
-      role => role.organizationId === context.organizationId
+      (role) => role.organizationId === context.organizationId
     );
     if (orgRole) {
-      ROLE_PERMISSIONS[orgRole.role]?.forEach(p => permissions.add(p));
+      ROLE_PERMISSIONS[orgRole.role]?.forEach((p) => permissions.add(p));
     }
   } else {
     // Add permissions from all organization roles if no specific org context
-    userWithRoles.organizationRoles.forEach(orgRole => {
-      ROLE_PERMISSIONS[orgRole.role]?.forEach(p => permissions.add(p));
+    userWithRoles.organizationRoles.forEach((orgRole) => {
+      ROLE_PERMISSIONS[orgRole.role]?.forEach((p) => permissions.add(p));
     });
   }
 

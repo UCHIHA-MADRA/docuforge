@@ -17,7 +17,7 @@ export async function GET(request: NextRequest) {
     }
 
     const documents = await prisma.document.findMany({
-      where: { authorId: session.user.id },
+      where: { userId: session.user.id },
       orderBy: { updatedAt: "desc" },
       select: {
         id: true,
@@ -33,7 +33,10 @@ export async function GET(request: NextRequest) {
     return NextResponse.json({ documents });
   } catch (error) {
     console.error("Error listing documents:", error);
-    return NextResponse.json({ error: "Internal server error" }, { status: 500 });
+    return NextResponse.json(
+      { error: "Internal server error" },
+      { status: 500 }
+    );
   }
 }
 
@@ -47,7 +50,10 @@ export async function POST(request: NextRequest) {
     const body = await request.json().catch(() => null);
     const parsed = createDocumentSchema.safeParse(body);
     if (!parsed.success) {
-      return NextResponse.json({ error: parsed.error.flatten() }, { status: 400 });
+      return NextResponse.json(
+        { error: parsed.error.flatten() },
+        { status: 400 }
+      );
     }
 
     const { title, content, visibility } = parsed.data;
@@ -56,8 +62,13 @@ export async function POST(request: NextRequest) {
       data: {
         title,
         content,
-        visibility: visibility ?? "private",
-        authorId: session.user.id,
+        visibility:
+          visibility === "private"
+            ? "PRIVATE"
+            : visibility === "public"
+            ? "PUBLIC"
+            : "ORGANIZATION",
+        userId: session.user.id,
       },
       select: {
         id: true,
@@ -73,8 +84,9 @@ export async function POST(request: NextRequest) {
     return NextResponse.json({ document: doc }, { status: 201 });
   } catch (error) {
     console.error("Error creating document:", error);
-    return NextResponse.json({ error: "Internal server error" }, { status: 500 });
+    return NextResponse.json(
+      { error: "Internal server error" },
+      { status: 500 }
+    );
   }
 }
-
-

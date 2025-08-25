@@ -1,3 +1,5 @@
+"use client";
+
 import Link from "next/link";
 import { Button } from "@/components/ui/button";
 import {
@@ -7,7 +9,12 @@ import {
   Zap,
   CheckCircle,
   ArrowRight,
+  Scissors,
+  FileOutput,
+  Table,
+  FileSearch,
 } from "lucide-react";
+import ClientEnhancedThemeToggle from "@/components/theme/ClientEnhancedThemeToggle";
 
 export default function HomePage() {
   return (
@@ -21,18 +28,19 @@ export default function HomePage() {
               <span className="text-xl font-bold text-gray-900">DocuForge</span>
             </div>
             <div className="flex items-center space-x-4">
-              <Link href="/editor-demo">
-                <Button variant="ghost">Editor Demo</Button>
-              </Link>
-              <Link href="/collaborative-demo">
-                <Button variant="ghost">Collaborative Demo</Button>
-              </Link>
-              <Link href="/auth/signin">
-                <Button variant="ghost">Sign In</Button>
-              </Link>
-              <Link href="/auth/signup">
-                <Button>Get Started</Button>
-              </Link>
+              <Button variant="ghost" asChild>
+                <Link href="/tools">Tools</Link>
+              </Button>
+              <Button variant="ghost" asChild>
+                <Link href="/dashboard">Dashboard</Link>
+              </Button>
+              <Button variant="ghost" asChild>
+                <Link href="/auth/signin">Sign In</Link>
+              </Button>
+              <Button asChild>
+                <Link href="/auth/signup">Get Started</Link>
+              </Button>
+              <ClientEnhancedThemeToggle variant="icon" />
             </div>
           </div>
         </div>
@@ -53,17 +61,17 @@ export default function HomePage() {
             in one platform.
           </p>
           <div className="flex flex-col sm:flex-row gap-4 justify-center">
-            <Link href="/auth/signup">
-              <Button size="lg" className="text-lg px-8 py-3">
+            <Button size="lg" className="text-lg px-8 py-3" asChild>
+              <Link href="/auth/signup">
                 Start Free Trial
                 <ArrowRight className="ml-2 h-5 w-5" />
-              </Button>
-            </Link>
-            <Link href="#features">
-              <Button variant="outline" size="lg" className="text-lg px-8 py-3">
+              </Link>
+            </Button>
+            <Button variant="outline" size="lg" className="text-lg px-8 py-3" asChild>
+              <Link href="#features">
                 Learn More
-              </Button>
-            </Link>
+              </Link>
+            </Button>
           </div>
         </div>
       </section>
@@ -82,90 +90,118 @@ export default function HomePage() {
           </div>
 
           <div className="grid md:grid-cols-2 lg:grid-cols-3 gap-8">
-            {/* PDF Processing */}
+            {/* PDF Splitter */}
             <div className="p-6 border border-gray-200 rounded-xl hover:shadow-lg transition-shadow">
               <div className="w-12 h-12 bg-blue-100 rounded-lg flex items-center justify-center mb-4">
-                <FileText className="h-6 w-6 text-blue-600" />
+                <Scissors className="h-6 w-6 text-blue-600" />
               </div>
               <h3 className="text-xl font-semibold text-gray-900 mb-2">
-                Advanced PDF Tools
+                PDF Splitter
               </h3>
               <p className="text-gray-600">
-                Merge, split, compress, and edit PDFs with professional-grade
-                tools. Handle large files efficiently with our optimized
-                processing engine.
+                Split large PDF documents into smaller files by page ranges. 
+                Preview pages before splitting and download individual sections.
               </p>
+              <div className="mt-4">
+                <Link href="/tools/pdf-splitter">
+                  <Button variant="outline" size="sm">Try Now</Button>
+                </Link>
+              </div>
             </div>
 
-            {/* Real-time Collaboration */}
+            {/* PDF Converter */}
             <div className="p-6 border border-gray-200 rounded-xl hover:shadow-lg transition-shadow">
               <div className="w-12 h-12 bg-green-100 rounded-lg flex items-center justify-center mb-4">
-                <Users className="h-6 w-6 text-green-600" />
+                <FileOutput className="h-6 w-6 text-green-600" />
               </div>
               <h3 className="text-xl font-semibold text-gray-900 mb-2">
-                Real-time Collaboration
+                Document Converter
               </h3>
               <p className="text-gray-600">
-                Work together seamlessly with live editing, comments, and
-                version control. See changes as they happen with sub-100ms
-                latency.
+                Convert documents between different formats including PDF, DOCX, 
+                and more with our powerful conversion engine.
               </p>
+              <div className="mt-4">
+                <Link href="/tools/pdf-converter">
+                  <Button variant="outline" size="sm">Try Now</Button>
+                </Link>
+              </div>
             </div>
 
-            {/* Security */}
+            {/* OCR Text Extraction */}
             <div className="p-6 border border-gray-200 rounded-xl hover:shadow-lg transition-shadow">
               <div className="w-12 h-12 bg-purple-100 rounded-lg flex items-center justify-center mb-4">
-                <Shield className="h-6 w-6 text-purple-600" />
+                <FileSearch className="h-6 w-6 text-purple-600" />
               </div>
               <h3 className="text-xl font-semibold text-gray-900 mb-2">
-                Enterprise Security
+                OCR Text Extraction
               </h3>
               <p className="text-gray-600">
-                Bank-level security with end-to-end encryption, role-based
-                access control, and comprehensive audit trails for compliance.
+                Extract text from images and scanned documents using advanced 
+                Optical Character Recognition technology.
               </p>
+              <div className="mt-4">
+                <Link href="/tools">
+                  <Button variant="outline" size="sm">Try Now</Button>
+                </Link>
+              </div>
             </div>
 
-            {/* Performance */}
+            {/* Spreadsheet Engine */}
             <div className="p-6 border border-gray-200 rounded-xl hover:shadow-lg transition-shadow">
               <div className="w-12 h-12 bg-orange-100 rounded-lg flex items-center justify-center mb-4">
-                <Zap className="h-6 w-6 text-orange-600" />
+                <Table className="h-6 w-6 text-orange-600" />
               </div>
               <h3 className="text-xl font-semibold text-gray-900 mb-2">
-                Lightning Fast
+                Spreadsheet Engine
               </h3>
               <p className="text-gray-600">
-                Optimized for speed with intelligent caching, CDN distribution,
-                and background processing for the best user experience.
+                Create, edit and analyze spreadsheet data with our powerful 
+                spreadsheet engine featuring formulas and data visualization.
               </p>
+              <div className="mt-4">
+                <Link href="/tools">
+                  <Button variant="outline" size="sm">Try Now</Button>
+                </Link>
+              </div>
             </div>
 
-            {/* Rich Text Editor */}
+            {/* PDF Compression */}
             <div className="p-6 border border-gray-200 rounded-xl hover:shadow-lg transition-shadow">
               <div className="w-12 h-12 bg-indigo-100 rounded-lg flex items-center justify-center mb-4">
                 <FileText className="h-6 w-6 text-indigo-600" />
               </div>
               <h3 className="text-xl font-semibold text-gray-900 mb-2">
-                Rich Text Editor
+                PDF Compression
               </h3>
               <p className="text-gray-600">
-                Professional document creation with advanced formatting,
-                templates, and collaborative editing features.
+                Reduce PDF file sizes while maintaining quality for easier sharing 
+                and storage with our optimized compression algorithm.
               </p>
+              <div className="mt-4">
+                <Link href="/tools">
+                  <Button variant="outline" size="sm">Try Now</Button>
+                </Link>
+              </div>
             </div>
 
-            {/* Team Management */}
+            {/* Document Management */}
             <div className="p-6 border border-gray-200 rounded-xl hover:shadow-lg transition-shadow">
               <div className="w-12 h-12 bg-pink-100 rounded-lg flex items-center justify-center mb-4">
                 <Users className="h-6 w-6 text-pink-600" />
               </div>
               <h3 className="text-xl font-semibold text-gray-900 mb-2">
-                Team Workspaces
+                Document Management
               </h3>
               <p className="text-gray-600">
-                Organize your team with workspaces, permissions, and advanced
-                sharing controls for seamless collaboration.
+                Organize, store, and manage all your documents in one secure place 
+                with advanced search and categorization features.
               </p>
+              <div className="mt-4">
+                <Link href="/dashboard">
+                  <Button variant="outline" size="sm">Try Now</Button>
+                </Link>
+              </div>
             </div>
           </div>
         </div>

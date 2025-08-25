@@ -247,6 +247,7 @@ model User {
   name          String?
   avatar        String?
   bio           String?
+  image         String? // Add missing image field
   emailVerified DateTime?
   timezone      String?   @default("UTC")
   language      String?   @default("en")
@@ -289,6 +290,7 @@ model User {
   sessions               Session[]
   documents              Document[]
   files                  File[]
+  folders                Folder[]
   comments               Comment[]
   shares                 Share[]
   organizations          OrganizationMember[]
@@ -356,11 +358,42 @@ model VerificationToken {
   @@map("verification_tokens")
 }
 
+model Folder {
+  id          String    @id @default(cuid())
+  name        String
+  description String?
+  path        String?
+  
+  // Hierarchy
+  parentId    String?
+  parent      Folder?   @relation("FolderHierarchy", fields: [parentId], references: [id], onDelete: SetNull)
+  subfolders  Folder[]  @relation("FolderHierarchy")
+  
+  // Ownership
+  userId      String
+  user        User      @relation(fields: [userId], references: [id], onDelete: Cascade)
+  
+  // Content
+  documents   Document[] @relation("FolderDocuments")
+  files       File[]     @relation("FolderFiles")
+  
+  // Timestamps
+  createdAt   DateTime  @default(now())
+  updatedAt   DateTime  @updatedAt
+  deletedAt   DateTime?
+  
+  @@map("folders")
+}
+
 model Document {
   id      String  @id @default(cuid())
   title   String
   slug    String? @unique
   content String? @db.Text
+  
+  // Folder relationship
+  folderId String?
+  folder   Folder? @relation("FolderDocuments", fields: [folderId], references: [id], onDelete: SetNull)
 
   // Enhanced content fields
   encryptedContent  String? // Encrypted document content
@@ -403,9 +436,16 @@ model Document {
   // Relationships
   userId String
   author User   @relation(fields: [userId], references: [id], onDelete: Cascade)
+  
+  // Additional fields
+  createdById String? // Creator ID
 
   organizationId String?
   organization   Organization? @relation(fields: [organizationId], references: [id])
+
+  // File relationship
+  fileId String?
+  file   File?   @relation(fields: [fileId], references: [id])
 
   collaborators DocumentCollaborator[]
   comments      Comment[]
@@ -457,10 +497,19 @@ model File {
   path         String
   url          String?
 
+  // Folder relationship
+  folderId    String?
+  folder      Folder?  @relation("FolderFiles", fields: [folderId], references: [id], onDelete: SetNull)
+
   // Security & Integrity
   checksum          String // SHA-256 checksum for integrity
   encryptedMetadata String // Encrypted file metadata
+  metadata          String? // Add missing metadata field
   isEncrypted       Boolean @default(true)
+  
+  // Additional fields
+  encryptionKey     String? // Encryption key reference
+  filename          String? // Original filename
 
   // Media-specific fields
   thumbnail  String?
@@ -512,6 +561,9 @@ model File {
   tags       Tag[]
   shares     Share[]    @relation("FileShares")
   auditLogs  AuditLog[]
+  
+  // Document relationship
+  documents Document[]
 
   @@index([userId])
   @@index([organizationId])
@@ -814,10 +866,12 @@ model AnalyticsEvent {
   userId    String?
   event     String
   category  String?
-  metadata  Json? // JSON string of event metadata
+  metadata  Json?
+  resource  String?        
   timestamp DateTime @default(now())
   userAgent String?
   ipAddress String?
 
   @@map("analytics_events")
 }
+

@@ -1,5 +1,9 @@
 import { PrismaClient } from "@prisma/client";
 
+declare const process: {
+  exit: (code?: number) => never;
+};
+
 const prisma = new PrismaClient();
 
 async function main() {
@@ -39,7 +43,7 @@ async function main() {
     },
   });
 
-  // Add users to organization
+  // Add users to organization with members
   await prisma.organizationMember.upsert({
     where: {
       organizationId_userId: {
@@ -51,7 +55,7 @@ async function main() {
     create: {
       organizationId: organization.id,
       userId: user1.id,
-      role: "owner",
+      role: "OWNER",
     },
   });
 
@@ -66,7 +70,7 @@ async function main() {
     create: {
       organizationId: organization.id,
       userId: user2.id,
-      role: "admin",
+      role: "ADMIN",
     },
   });
 
@@ -76,9 +80,9 @@ async function main() {
       title: "Project Proposal 2024",
       content:
         "This is a comprehensive project proposal for the upcoming year...",
-      status: "draft",
-      visibility: "organization",
-      authorId: user1.id,
+      status: "DRAFT",
+      visibility: "ORGANIZATION",
+      userId: user1.id,
       organizationId: organization.id,
       wordCount: 1500,
       readingTime: 6,
@@ -89,9 +93,9 @@ async function main() {
     data: {
       title: "Team Meeting Notes",
       content: "Key points from our weekly team meeting...",
-      status: "published",
-      visibility: "organization",
-      authorId: user2.id,
+      status: "PUBLISHED",
+      visibility: "ORGANIZATION",
+      userId: user2.id,
       organizationId: organization.id,
       wordCount: 800,
       readingTime: 3,
@@ -102,30 +106,47 @@ async function main() {
   const file1 = await prisma.file.create({
     data: {
       name: "presentation.pdf",
+      filename: "presentation.pdf",
       originalName: "presentation.pdf",
       mimeType: "application/pdf",
       size: 2048576,
       path: "/uploads/presentations/presentation.pdf",
-      url: "https://example.com/uploads/presentations/presentation.pdf",
+      encryptedMetadata: "{}",
       uploadedBy: user1.id,
       userId: user1.id,
-      organizationId: organization.id,
-      processingStatus: "completed",
+      processingStatus: "COMPLETED",
+      checksum: "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
     },
   });
 
   const file2 = await prisma.file.create({
     data: {
       name: "image.jpg",
+      filename: "image.jpg",
       originalName: "team-photo.jpg",
       mimeType: "image/jpeg",
       size: 1048576,
       path: "/uploads/images/image.jpg",
-      url: "https://example.com/uploads/images/image.jpg",
+      encryptedMetadata: "{}",
       uploadedBy: user2.id,
       userId: user2.id,
-      organizationId: organization.id,
-      processingStatus: "completed",
+      processingStatus: "COMPLETED",
+      checksum: "f7846f55cf23e14eebeab5b4e1550cad5b509e3348fbc4efa3a1413d393cb650",
+    },
+  });
+
+  // Link files to documents
+  await prisma.document.update({
+    where: { id: document1.id },
+    data: {
+      fileId: file1.id,
+    },
+  });
+
+  await prisma.document.update({
+    where: { id: document2.id },
+    data: {
+      fileId: file2.id,
     },
   });
 
@@ -200,6 +221,33 @@ async function main() {
     },
   });
 
+  // Create sample analytics events
+  await prisma.analyticsEvent.create({
+    data: {
+      userId: user1.id,
+      event: "document_create",
+      category: "document",
+      metadata: {
+        documentId: document1.id,
+        documentTitle: "Project Proposal 2024",
+      },
+    },
+  });
+
+  await prisma.analyticsEvent.create({
+    data: {
+      userId: user2.id,
+      event: "file_upload",
+      category: "file",
+      metadata: {
+        fileId: file2.id,
+        fileName: "team-photo.jpg",
+        fileSize: 1048576,
+        mimeType: "image/jpeg",
+      },
+    },
+  });
+
   console.log("✅ Database seeded successfully!");
   console.log(`👥 Created ${2} users`);
   console.log(`🏢 Created ${1} organization`);
@@ -207,6 +255,7 @@ async function main() {
   console.log(`📁 Created ${2} files`);
   console.log(`🏷️  Created ${2} tags`);
   console.log(`💬 Created ${1} comment`);
+  console.log(`📊 Created ${2} analytics events`);
 }
 
 main()

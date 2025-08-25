@@ -90,6 +90,13 @@ export async function POST(request: NextRequest) {
         { status: 400 }
       );
     }
+    
+    // Validate text-based formats
+const textBasedFormats = ["txt", "md", "html", "xml", "rtf", "latex"];
+    const documentFileFormats = ["docx", "odt", "epub"];
+    const imageFormats = ["png", "jpg", "jpeg", "webp", "tiff"];
+    
+    // Add format-specific validations if needed
 
     // Validate compression for TIFF
     const validCompressions = ['none', 'lzw', 'zip'];
@@ -123,6 +130,13 @@ export async function POST(request: NextRequest) {
       pages,
       compression: compressionParam as 'none' | 'lzw' | 'zip',
     };
+    
+    // Add format-specific options
+    const textFormats = ["txt", "md", "html", "xml", "rtf", "latex"];
+    const documentFormats = ["docx", "odt", "epub"];
+    
+    // For text-based formats, we might want to add specific options in the future
+    // For document formats, we might want to add specific options in the future
 
     // Perform conversion
     const result = await documentConverter.convertDocument(inputBuffer, inputFormat, options);

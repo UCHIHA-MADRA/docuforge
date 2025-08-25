@@ -4,7 +4,7 @@
  * Custom server with WebSocket support for DocuForge
  */
 
-const { initServer } = require('./dist/lib/server.js');
+import { initServer } from './dist/lib/server.js';
 
 // Start the server
 initServer().catch((err) => {

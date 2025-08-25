@@ -1,13 +1,10 @@
-import { NextRequest, NextResponse } from 'next/server';
-import { getServerSession } from 'next-auth';
-import { authOptions } from '../../../auth/[...nextauth]/route';
-import {
-  retrieveEncryptedFile,
-  FileMetadata,
-} from '@/lib/encrypted-storage';
-import { getUserWithRoles, hasPermission } from '@/lib/permissions';
-import { prisma } from '@/lib/prisma';
-import crypto from 'crypto';
+import { NextRequest, NextResponse } from "next/server";
+import { getServerSession } from "next-auth";
+import { authOptions } from "../../../auth/[...nextauth]/route";
+import { retrieveEncryptedFile, FileMetadata } from "@/lib/encrypted-storage";
+import { getUserWithRoles, hasPermission } from "@/lib/permissions";
+import { prisma } from "@/lib/prisma";
+import crypto from "crypto";
 
 interface DownloadParams {
   fileId: string;
@@ -22,7 +19,7 @@ export async function GET(
     const session = await getServerSession(authOptions);
     if (!session?.user?.id) {
       return NextResponse.json(
-        { error: 'Authentication required' },
+        { error: "Authentication required" },
         { status: 401 }
       );
     }
@@ -30,7 +27,7 @@ export async function GET(
     const { fileId } = params;
     if (!fileId) {
       return NextResponse.json(
-        { error: 'File ID is required' },
+        { error: "File ID is required" },
         { status: 400 }
       );
     }
@@ -38,10 +35,7 @@ export async function GET(
     // Get user with roles for permission checking
     const userWithRoles = await getUserWithRoles(session.user.id);
     if (!userWithRoles) {
-      return NextResponse.json(
-        { error: 'User not found' },
-        { status: 404 }
-      );
+      return NextResponse.json({ error: "User not found" }, { status: 404 });
     }
 
     // Get file record from database to check permissions
@@ -59,10 +53,7 @@ export async function GET(
     });
 
     if (!fileRecord) {
-      return NextResponse.json(
-        { error: 'File not found' },
-        { status: 404 }
-      );
+      return NextResponse.json({ error: "File not found" }, { status: 404 });
     }
 
     // Check if user has permission to access this file
@@ -80,14 +71,13 @@ export async function GET(
         const collaboration = document.collaborators.find(
           (collab: { userId: string }) => collab.userId === session.user.id
         );
-        
+
         if (collaboration) {
-          const canView = hasPermission(
-            userWithRoles,
-            'document:view',
-            { documentId: document.id, collaborationRole: collaboration.role }
-          );
-          
+          const canView = hasPermission(userWithRoles, "document:read", {
+            documentId: document.id,
+            collaborationRole: collaboration.role,
+          });
+
           if (canView) {
             hasAccess = true;
             break;
@@ -97,16 +87,15 @@ export async function GET(
         // Check organization access
         if (!hasAccess && document.organization) {
           const orgRole = userWithRoles.organizationRoles.find(
-            role => role.organizationId === document.organizationId
+            (role) => role.organizationId === document.organizationId
           );
-          
+
           if (orgRole) {
-            const canViewOrgFiles = hasPermission(
-              userWithRoles,
-              'file:view',
-              { organizationId: document.organizationId, organizationRole: orgRole.role }
-            );
-            
+            const canViewOrgFiles = hasPermission(userWithRoles, "file:view", {
+              organizationId: document.organizationId,
+              organizationRole: orgRole.role,
+            });
+
             if (canViewOrgFiles) {
               hasAccess = true;
               break;
@@ -118,21 +107,19 @@ export async function GET(
 
     // 3. Check admin permissions
     if (!hasAccess) {
-      const isAdmin = hasPermission(userWithRoles, 'admin:files');
+      const isAdmin = hasPermission(userWithRoles, "admin:files");
       if (isAdmin) {
         hasAccess = true;
       }
     }
 
     if (!hasAccess) {
-      return NextResponse.json(
-        { error: 'Access denied' },
-        { status: 403 }
-      );
+      return NextResponse.json({ error: "Access denied" }, { status: 403 });
     }
 
     // Generate user encryption key (same as used in upload)
-    const userKey = process.env.USER_ENCRYPTION_KEY || 'default-key-for-development';
+    const userKey =
+      process.env.USER_ENCRYPTION_KEY || "default-key-for-development";
 
     // Retrieve and decrypt file
     const { buffer, metadata } = await retrieveEncryptedFile(
@@ -146,8 +133,8 @@ export async function GET(
       data: {
         id: crypto.randomUUID(),
         userId: session.user.id,
-        eventType: 'file_download',
-        resourceType: 'file',
+        eventType: "file_download",
+        resourceType: "file",
         resourceId: fileId,
         metadata: JSON.stringify({
           fileName: metadata.originalName,
@@ -155,7 +142,7 @@ export async function GET(
           mimeType: metadata.mimeType,
           downloadedBy: session.user.id,
           fileOwner: fileRecord.userId,
-        },
+        }),
       },
     });
 
@@ -163,46 +150,48 @@ export async function GET(
     await prisma.file.update({
       where: { id: fileId },
       data: {
-        lastAccessedAt: new Date(),
+        lastAccessed: new Date(),
       },
     });
 
     // Set appropriate headers for file download
     const headers = new Headers();
-    headers.set('Content-Type', metadata.mimeType);
-    headers.set('Content-Length', buffer.length.toString());
-    headers.set('Content-Disposition', `attachment; filename="${metadata.originalName}"`);
-    
+    headers.set("Content-Type", metadata.mimeType);
+    headers.set("Content-Length", buffer.length.toString());
+    headers.set(
+      "Content-Disposition",
+      `attachment; filename="${metadata.originalName}"`
+    );
+
     // Security headers
-    headers.set('X-Content-Type-Options', 'nosniff');
-    headers.set('X-Frame-Options', 'DENY');
-    headers.set('X-XSS-Protection', '1; mode=block');
-    
+    headers.set("X-Content-Type-Options", "nosniff");
+    headers.set("X-Frame-Options", "DENY");
+    headers.set("X-XSS-Protection", "1; mode=block");
+
     // Cache control for sensitive files
-    headers.set('Cache-Control', 'no-cache, no-store, must-revalidate');
-    headers.set('Pragma', 'no-cache');
-    headers.set('Expires', '0');
+    headers.set("Cache-Control", "no-cache, no-store, must-revalidate");
+    headers.set("Pragma", "no-cache");
+    headers.set("Expires", "0");
 
     return new NextResponse(buffer, {
       status: 200,
       headers,
     });
-
   } catch (error) {
-    console.error('File download error:', error);
-    
+    console.error("File download error:", error);
+
     // Don't expose internal error details
-    if (error instanceof Error && error.message.includes('integrity check failed')) {
+    if (
+      error instanceof Error &&
+      error.message.includes("integrity check failed")
+    ) {
       return NextResponse.json(
-        { error: 'File integrity verification failed' },
+        { error: "File integrity verification failed" },
         { status: 422 }
       );
     }
-    
-    return NextResponse.json(
-      { error: 'Download failed' },
-      { status: 500 }
-    );
+
+    return NextResponse.json({ error: "Download failed" }, { status: 500 });
   }
 }
 
@@ -243,7 +232,9 @@ export async function HEAD(
     // Basic permission check (file owner or admin)
     const userWithRoles = await getUserWithRoles(session.user.id);
     const isOwner = fileRecord.userId === session.user.id;
-    const isAdmin = userWithRoles ? hasPermission(userWithRoles, 'admin:file_management') : false;
+    const isAdmin = userWithRoles
+      ? hasPermission(userWithRoles, "admin:file_management")
+      : false;
 
     if (!isOwner && !isAdmin) {
       return new NextResponse(null, { status: 403 });
@@ -251,19 +242,21 @@ export async function HEAD(
 
     // Return file metadata in headers
     const headers = new Headers();
-    headers.set('Content-Type', fileRecord.mimeType);
-    headers.set('Content-Length', fileRecord.size.toString());
-headers.set('Last-Modified', fileRecord.lastAccessed?.toUTCString() || new Date().toUTCString());
-    headers.set('X-File-Name', fileRecord.name);
-    headers.set('X-File-ID', fileRecord.id);
+    headers.set("Content-Type", fileRecord.mimeType);
+    headers.set("Content-Length", fileRecord.size.toString());
+    headers.set(
+      "Last-Modified",
+      fileRecord.lastAccessed?.toUTCString() || new Date().toUTCString()
+    );
+    headers.set("X-File-Name", fileRecord.originalName);
+    headers.set("X-File-ID", fileRecord.id);
 
     return new NextResponse(null, {
       status: 200,
       headers,
     });
-
   } catch (error) {
-    console.error('File HEAD request error:', error);
+    console.error("File HEAD request error:", error);
     return new NextResponse(null, { status: 500 });
   }
 }

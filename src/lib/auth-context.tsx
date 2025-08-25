@@ -1,8 +1,19 @@
-'use client';
+"use client";
 
-import { createContext, useContext, ReactNode, useEffect, useState } from 'react';
-import { useSession } from 'next-auth/react';
-import { Permission, hasPermission, hasAllPermissions, hasAnyPermission } from './permissions';
+import {
+  createContext,
+  useContext,
+  ReactNode,
+  useEffect,
+  useState,
+} from "react";
+import { useSession } from "next-auth/react";
+import {
+  Permission,
+  hasPermission,
+  hasAllPermissions,
+  hasAnyPermission,
+} from "./permissions";
 
 interface UserWithRoles {
   id: string;
@@ -24,13 +35,28 @@ interface AuthContextType {
   loading: boolean;
   isAuthenticated: boolean;
   // Permission checking functions
-  hasPermission: (permission: Permission, context?: { documentId?: string; organizationId?: string }) => boolean;
-  hasAllPermissions: (permissions: Permission[], context?: { documentId?: string; organizationId?: string }) => boolean;
-  hasAnyPermission: (permissions: Permission[], context?: { documentId?: string; organizationId?: string }) => boolean;
+  hasPermission: (
+    permission: Permission,
+    context?: { documentId?: string; organizationId?: string }
+  ) => boolean;
+  hasAllPermissions: (
+    permissions: Permission[],
+    context?: { documentId?: string; organizationId?: string }
+  ) => boolean;
+  hasAnyPermission: (
+    permissions: Permission[],
+    context?: { documentId?: string; organizationId?: string }
+  ) => boolean;
   // Role checking functions
-  hasRole: (role: string, context?: { documentId?: string; organizationId?: string }) => boolean;
+  hasRole: (
+    role: string,
+    context?: { documentId?: string; organizationId?: string }
+  ) => boolean;
   isAdmin: () => boolean;
-  isOwner: (context?: { documentId?: string; organizationId?: string }) => boolean;
+  isOwner: (context?: {
+    documentId?: string;
+    organizationId?: string;
+  }) => boolean;
   // Utility functions
   refreshUserData: () => Promise<void>;
 }
@@ -39,7 +65,9 @@ const AuthContext = createContext<AuthContextType | undefined>(undefined);
 
 export function AuthProvider({ children }: { children: ReactNode }) {
   const { data: session, status } = useSession();
-  const [userWithRoles, setUserWithRoles] = useState<UserWithRoles | null>(null);
+  const [userWithRoles, setUserWithRoles] = useState<UserWithRoles | null>(
+    null
+  );
   const [loading, setLoading] = useState(true);
 
   // Fetch user data with roles when session changes
@@ -47,15 +75,39 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     const fetchUserData = async () => {
       if (session?.user?.id) {
         try {
-          const response = await fetch('/api/auth/user-data');
+          const response = await fetch("/api/auth/user-data", {
+            method: "GET",
+            headers: {
+              "Content-Type": "application/json",
+            },
+            // Add timeout to prevent hanging requests
+            signal: AbortSignal.timeout(10000), // 10 second timeout
+          });
+
           if (response.ok) {
             const userData = await response.json();
-            setUserWithRoles(userData);
+            // Validate user data structure
+            if (userData && typeof userData === "object" && userData.id) {
+              setUserWithRoles({
+                id: userData.id,
+                email: userData.email || session.user.email || "",
+                name: userData.name || session.user.name || undefined,
+                image: userData.image || session.user.image || undefined,
+                organizationRoles: Array.isArray(userData.organizationRoles)
+                  ? userData.organizationRoles
+                  : [],
+                documentRoles: Array.isArray(userData.documentRoles)
+                  ? userData.documentRoles
+                  : [],
+              });
+            } else {
+              throw new Error("Invalid user data structure");
+            }
           } else {
             // Fallback to session data
             setUserWithRoles({
               id: session.user.id,
-              email: session.user.email || '',
+              email: session.user.email || "",
               name: session.user.name || undefined,
               image: session.user.image || undefined,
               organizationRoles: [],
@@ -63,11 +115,11 @@ export function AuthProvider({ children }: { children: ReactNode }) {
             });
           }
         } catch (error) {
-          console.error('Failed to fetch user data:', error);
+          console.error("Failed to fetch user data:", error);
           // Fallback to session data
           setUserWithRoles({
             id: session.user.id,
-            email: session.user.email || '',
+            email: session.user.email || "",
             name: session.user.name || undefined,
             image: session.user.image || undefined,
             organizationRoles: [],
@@ -80,7 +132,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       setLoading(false);
     };
 
-    if (status !== 'loading') {
+    if (status !== "loading") {
       fetchUserData();
     }
   }, [session, status]);
@@ -89,99 +141,173 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     if (session?.user?.id) {
       setLoading(true);
       try {
-        const response = await fetch('/api/auth/user-data');
+        const response = await fetch("/api/auth/user-data", {
+          method: "GET",
+          headers: {
+            "Content-Type": "application/json",
+          },
+          signal: AbortSignal.timeout(10000), // 10 second timeout
+        });
+
         if (response.ok) {
           const userData = await response.json();
-          setUserWithRoles(userData);
+          // Validate user data structure
+          if (userData && typeof userData === "object" && userData.id) {
+            setUserWithRoles({
+              id: userData.id,
+              email: userData.email || session.user.email || "",
+              name: userData.name || session.user.name || undefined,
+              image: userData.image || session.user.image || undefined,
+              organizationRoles: Array.isArray(userData.organizationRoles)
+                ? userData.organizationRoles
+                : [],
+              documentRoles: Array.isArray(userData.documentRoles)
+                ? userData.documentRoles
+                : [],
+            });
+          } else {
+            throw new Error("Invalid user data structure");
+          }
+        } else {
+          console.error(
+            "Failed to refresh user data: HTTP error",
+            response.status
+          );
         }
       } catch (error) {
-        console.error('Failed to refresh user data:', error);
+        console.error("Failed to refresh user data:", error);
+        // Don't update user data on error, keep existing state
       }
       setLoading(false);
     }
   };
 
-  const checkPermission = (permission: Permission, context?: { documentId?: string; organizationId?: string }) => {
+  const checkPermission = (
+    permission: Permission,
+    context?: { documentId?: string; organizationId?: string }
+  ) => {
     if (!userWithRoles) return false;
-    return hasPermission({
-      ...userWithRoles,
-      name: userWithRoles.name || null,
-      image: userWithRoles.image || null,
-      organizationRoles: userWithRoles.organizationRoles || [],
-      documentRoles: userWithRoles.documentRoles || []
-    }, permission, context);
+    return hasPermission(
+      {
+        ...userWithRoles,
+        name: userWithRoles.name || null,
+        image: userWithRoles.image || null,
+        organizationRoles: userWithRoles.organizationRoles || [],
+        documentRoles: userWithRoles.documentRoles || [],
+      },
+      permission,
+      context
+    );
   };
 
-  const checkAllPermissions = (permissions: Permission[], context?: { documentId?: string; organizationId?: string }) => {
+  const checkAllPermissions = (
+    permissions: Permission[],
+    context?: { documentId?: string; organizationId?: string }
+  ) => {
     if (!userWithRoles) return false;
-    return hasAllPermissions({
-      ...userWithRoles,
-      name: userWithRoles.name || null,
-      image: userWithRoles.image || null,
-      organizationRoles: userWithRoles.organizationRoles || [],
-      documentRoles: userWithRoles.documentRoles || []
-    }, permissions, context);
+    return hasAllPermissions(
+      {
+        ...userWithRoles,
+        name: userWithRoles.name || null,
+        image: userWithRoles.image || null,
+        organizationRoles: userWithRoles.organizationRoles || [],
+        documentRoles: userWithRoles.documentRoles || [],
+      },
+      permissions,
+      context
+    );
   };
 
-  const checkAnyPermission = (permissions: Permission[], context?: { documentId?: string; organizationId?: string }) => {
+  const checkAnyPermission = (
+    permissions: Permission[],
+    context?: { documentId?: string; organizationId?: string }
+  ) => {
     if (!userWithRoles) return false;
-    return hasAnyPermission({
-      ...userWithRoles,
-      name: userWithRoles.name || null,
-      image: userWithRoles.image || null,
-      organizationRoles: userWithRoles.organizationRoles || [],
-      documentRoles: userWithRoles.documentRoles || []
-    }, permissions, context);
+    return hasAnyPermission(
+      {
+        ...userWithRoles,
+        name: userWithRoles.name || null,
+        image: userWithRoles.image || null,
+        organizationRoles: userWithRoles.organizationRoles || [],
+        documentRoles: userWithRoles.documentRoles || [],
+      },
+      permissions,
+      context
+    );
   };
 
-  const checkRole = (role: string, context?: { documentId?: string; organizationId?: string }) => {
+  const checkRole = (
+    role: string,
+    context?: { documentId?: string; organizationId?: string }
+  ) => {
     if (!userWithRoles) return false;
-    
+
     if (context?.documentId) {
-      return userWithRoles.documentRoles?.some(
-        dr => dr.documentId === context.documentId && dr.role === role
-      ) || false;
+      return (
+        userWithRoles.documentRoles?.some(
+          (dr) => dr.documentId === context.documentId && dr.role === role
+        ) || false
+      );
     }
-    
+
     if (context?.organizationId) {
-      return userWithRoles.organizationRoles?.some(
-        or => or.organizationId === context.organizationId && or.role === role
-      ) || false;
+      return (
+        userWithRoles.organizationRoles?.some(
+          (or) =>
+            or.organizationId === context.organizationId && or.role === role
+        ) || false
+      );
     }
-    
+
     // Check if user has this role in any context
     return (
-      userWithRoles.organizationRoles?.some(or => or.role === role) ||
-      userWithRoles.documentRoles?.some(dr => dr.role === role)
-    ) || false;
+      userWithRoles.organizationRoles?.some((or) => or.role === role) ||
+      userWithRoles.documentRoles?.some((dr) => dr.role === role) ||
+      false
+    );
   };
 
   const checkIsAdmin = () => {
     if (!userWithRoles) return false;
-    return userWithRoles.organizationRoles?.some(or => or.role === 'admin' || or.role === 'owner') || false;
+    return (
+      userWithRoles.organizationRoles?.some(
+        (or) => or.role === "admin" || or.role === "owner"
+      ) || false
+    );
   };
 
-  const checkIsOwner = (context?: { documentId?: string; organizationId?: string }) => {
+  const checkIsOwner = (context?: {
+    documentId?: string;
+    organizationId?: string;
+  }) => {
     if (!userWithRoles) return false;
-    
+
     if (context?.documentId) {
-      return userWithRoles.documentRoles?.some(
-        dr => dr.documentId === context.documentId && dr.role === 'owner'
-      ) || false;
+      return (
+        userWithRoles.documentRoles?.some(
+          (dr) => dr.documentId === context.documentId && dr.role === "owner"
+        ) || false
+      );
     }
-    
+
     if (context?.organizationId) {
-      return userWithRoles.organizationRoles?.some(
-        or => or.organizationId === context.organizationId && or.role === 'owner'
-      ) || false;
+      return (
+        userWithRoles.organizationRoles?.some(
+          (or) =>
+            or.organizationId === context.organizationId && or.role === "owner"
+        ) || false
+      );
     }
-    
-    return userWithRoles.organizationRoles?.some(or => or.role === 'owner') || false;
+
+    return (
+      userWithRoles.organizationRoles?.some((or) => or.role === "owner") ||
+      false
+    );
   };
 
   const value: AuthContextType = {
     user: userWithRoles,
-    loading: loading || status === 'loading',
+    loading: loading || status === "loading",
     isAuthenticated: !!userWithRoles,
     hasPermission: checkPermission,
     hasAllPermissions: checkAllPermissions,
@@ -198,18 +324,24 @@ export function AuthProvider({ children }: { children: ReactNode }) {
 export function useAuth() {
   const context = useContext(AuthContext);
   if (context === undefined) {
-    throw new Error('useAuth must be used within an AuthProvider');
+    throw new Error("useAuth must be used within an AuthProvider");
   }
   return context;
 }
 
 // Convenience hooks for common permission checks
-export function usePermission(permission: Permission, context?: { documentId?: string; organizationId?: string }) {
+export function usePermission(
+  permission: Permission,
+  context?: { documentId?: string; organizationId?: string }
+) {
   const { hasPermission } = useAuth();
   return hasPermission(permission, context);
 }
 
-export function useRole(role: string, context?: { documentId?: string; organizationId?: string }) {
+export function useRole(
+  role: string,
+  context?: { documentId?: string; organizationId?: string }
+) {
   const { hasRole } = useAuth();
   return hasRole(role, context);
 }
@@ -219,7 +351,10 @@ export function useIsAdmin() {
   return isAdmin();
 }
 
-export function useIsOwner(context?: { documentId?: string; organizationId?: string }) {
+export function useIsOwner(context?: {
+  documentId?: string;
+  organizationId?: string;
+}) {
   const { isOwner } = useAuth();
   return isOwner(context);
 }

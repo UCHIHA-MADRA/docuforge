@@ -1,7 +1,13 @@
-import { z } from 'zod';
+import { z } from "zod";
 
 // Annotation types and interfaces
-export type AnnotationType = 'highlight' | 'comment' | 'stamp' | 'drawing' | 'text' | 'link';
+export type AnnotationType =
+  | "highlight"
+  | "comment"
+  | "stamp"
+  | "drawing"
+  | "text"
+  | "link";
 
 export type AnnotationColor = {
   r: number; // 0-1
@@ -33,23 +39,23 @@ export interface BaseAnnotation {
   opacity: number; // 0-1
   isVisible: boolean;
   isLocked: boolean;
-  metadata?: Record<string, any>;
+  metadata?: Record<string, string | number | boolean | null | undefined>;
 }
 
 export interface HighlightAnnotation extends BaseAnnotation {
-  type: 'highlight';
+  type: "highlight";
   rectangles: Rectangle[]; // Multiple rectangles for text spanning multiple lines
   selectedText: string;
-  blendMode: 'multiply' | 'normal' | 'screen';
+  blendMode: "multiply" | "normal" | "screen";
 }
 
 export interface CommentAnnotation extends BaseAnnotation {
-  type: 'comment';
+  type: "comment";
   position: Point;
   content: string;
   replies: CommentReply[];
   isResolved: boolean;
-  iconType: 'note' | 'comment' | 'key' | 'help' | 'insert' | 'paragraph';
+  iconType: "note" | "comment" | "key" | "help" | "insert" | "paragraph";
   size: { width: number; height: number };
 }
 
@@ -62,20 +68,26 @@ export interface CommentReply {
 }
 
 export interface StampAnnotation extends BaseAnnotation {
-  type: 'stamp';
+  type: "stamp";
   position: Point;
   size: { width: number; height: number };
-  stampType: 'approved' | 'rejected' | 'draft' | 'confidential' | 'urgent' | 'custom';
+  stampType:
+    | "approved"
+    | "rejected"
+    | "draft"
+    | "confidential"
+    | "urgent"
+    | "custom";
   text?: string; // For custom stamps
   rotation: number; // degrees
   imageData?: string; // Base64 encoded image for custom stamps
 }
 
 export interface DrawingAnnotation extends BaseAnnotation {
-  type: 'drawing';
+  type: "drawing";
   paths: DrawingPath[];
   strokeWidth: number;
-  strokeStyle: 'solid' | 'dashed' | 'dotted';
+  strokeStyle: "solid" | "dashed" | "dotted";
 }
 
 export interface DrawingPath {
@@ -84,13 +96,13 @@ export interface DrawingPath {
 }
 
 export interface TextAnnotation extends BaseAnnotation {
-  type: 'text';
+  type: "text";
   position: Point;
   content: string;
   fontSize: number;
   fontFamily: string;
-  fontStyle: 'normal' | 'italic' | 'bold' | 'bold-italic';
-  alignment: 'left' | 'center' | 'right';
+  fontStyle: "normal" | "italic" | "bold" | "bold-italic";
+  alignment: "left" | "center" | "right";
   rotation: number;
   backgroundColor?: AnnotationColor;
   borderColor?: AnnotationColor;
@@ -98,21 +110,21 @@ export interface TextAnnotation extends BaseAnnotation {
 }
 
 export interface LinkAnnotation extends BaseAnnotation {
-  type: 'link';
+  type: "link";
   rectangle: Rectangle;
   url: string;
   displayText?: string;
-  linkType: 'url' | 'email' | 'page' | 'file';
+  linkType: "url" | "email" | "page" | "file";
   targetPage?: number; // For page links
   targetFile?: string; // For file links
 }
 
-export type Annotation = 
-  | HighlightAnnotation 
-  | CommentAnnotation 
-  | StampAnnotation 
-  | DrawingAnnotation 
-  | TextAnnotation 
+export type Annotation =
+  | HighlightAnnotation
+  | CommentAnnotation
+  | StampAnnotation
+  | DrawingAnnotation
+  | TextAnnotation
   | LinkAnnotation;
 
 // Annotation layer for managing annotations on a page
@@ -125,7 +137,7 @@ export interface AnnotationLayer {
 
 // Annotation history for undo/redo
 export interface AnnotationOperation {
-  type: 'add' | 'edit' | 'delete' | 'move' | 'resize';
+  type: "add" | "edit" | "delete" | "move" | "resize";
   annotationId: string;
   beforeState?: Partial<Annotation>;
   afterState?: Partial<Annotation>;
@@ -154,7 +166,7 @@ export const RectangleSchema = z.object({
 
 export const BaseAnnotationSchema = z.object({
   id: z.string(),
-  type: z.enum(['highlight', 'comment', 'stamp', 'drawing', 'text', 'link']),
+  type: z.enum(["highlight", "comment", "stamp", "drawing", "text", "link"]),
   pageIndex: z.number().int().min(0),
   createdAt: z.date(),
   updatedAt: z.date(),
@@ -163,7 +175,7 @@ export const BaseAnnotationSchema = z.object({
   opacity: z.number().min(0).max(1),
   isVisible: z.boolean(),
   isLocked: z.boolean(),
-  metadata: z.record(z.any()).optional(),
+  metadata: z.record(z.union([z.string(), z.number(), z.boolean(), z.null(), z.undefined()])).optional(),
 });
 
 // PDF Annotation Manager Class
@@ -173,28 +185,28 @@ export class PDFAnnotationManager {
   private history: AnnotationOperation[] = [];
   private historyIndex: number = -1;
   private maxHistorySize: number = 100;
-  private listeners: Map<string, Function[]> = new Map();
+  private listeners: Map<string, Array<(data?: unknown) => void>> = new Map();
 
   constructor() {
     this.initializeEventListeners();
   }
 
   private initializeEventListeners() {
-    this.listeners.set('annotationAdded', []);
-    this.listeners.set('annotationUpdated', []);
-    this.listeners.set('annotationDeleted', []);
-    this.listeners.set('annotationSelected', []);
-    this.listeners.set('layerChanged', []);
+    this.listeners.set("annotationAdded", []);
+    this.listeners.set("annotationUpdated", []);
+    this.listeners.set("annotationDeleted", []);
+    this.listeners.set("annotationSelected", []);
+    this.listeners.set("layerChanged", []);
   }
 
   // Event management
-  on(event: string, callback: Function) {
+  on(event: string, callback: (data?: unknown) => void) {
     const callbacks = this.listeners.get(event) || [];
     callbacks.push(callback);
     this.listeners.set(event, callbacks);
   }
 
-  off(event: string, callback: Function) {
+  off(event: string, callback: (data?: unknown) => void) {
     const callbacks = this.listeners.get(event) || [];
     const index = callbacks.indexOf(callback);
     if (index > -1) {
@@ -202,9 +214,9 @@ export class PDFAnnotationManager {
     }
   }
 
-  private emit(event: string, data?: any) {
+  private emit(event: string, data?: unknown) {
     const callbacks = this.listeners.get(event) || [];
-    callbacks.forEach(callback => callback(data));
+    callbacks.forEach((callback) => callback(data));
   }
 
   // Layer management
@@ -216,7 +228,7 @@ export class PDFAnnotationManager {
       isLocked: false,
     };
     this.layers.set(pageIndex, layer);
-    this.emit('layerChanged', { pageIndex, layer });
+    this.emit("layerChanged", { pageIndex, layer });
     return layer;
   }
 
@@ -232,7 +244,7 @@ export class PDFAnnotationManager {
     const layer = this.layers.get(pageIndex);
     if (layer) {
       layer.isVisible = isVisible;
-      this.emit('layerChanged', { pageIndex, layer });
+      this.emit("layerChanged", { pageIndex, layer });
       return true;
     }
     return false;
@@ -242,17 +254,19 @@ export class PDFAnnotationManager {
     const layer = this.layers.get(pageIndex);
     if (layer) {
       layer.isLocked = isLocked;
-      this.emit('layerChanged', { pageIndex, layer });
+      this.emit("layerChanged", { pageIndex, layer });
       return true;
     }
     return false;
   }
 
   // Annotation CRUD operations
-  addAnnotation(annotation: Omit<Annotation, 'id' | 'createdAt' | 'updatedAt'>): string {
+  addAnnotation(
+    annotation: Omit<Annotation, "id" | "createdAt" | "updatedAt">
+  ): string {
     const id = this.generateId();
     const now = new Date();
-    
+
     const fullAnnotation: Annotation = {
       ...annotation,
       id,
@@ -271,18 +285,22 @@ export class PDFAnnotationManager {
 
     // Add to history
     this.addToHistory({
-      type: 'add',
+      type: "add",
       annotationId: id,
       afterState: fullAnnotation,
       timestamp: now,
     });
 
-    this.emit('annotationAdded', fullAnnotation);
+    this.emit("annotationAdded", fullAnnotation);
     return id;
   }
 
   getAnnotation(id: string): Annotation | null {
     return this.annotations.get(id) || null;
+  }
+
+  getAllAnnotations(): Annotation[] {
+    return Array.from(this.annotations.values());
   }
 
   updateAnnotation(id: string, updates: Partial<Annotation>): boolean {
@@ -297,14 +315,14 @@ export class PDFAnnotationManager {
       ...updates,
       id, // Ensure ID doesn't change
       updatedAt: new Date(),
-    };
+    } as Annotation;
 
     this.annotations.set(id, updatedAnnotation);
 
     // Update in layer
     const layer = this.layers.get(annotation.pageIndex);
     if (layer) {
-      const index = layer.annotations.findIndex(a => a.id === id);
+      const index = layer.annotations.findIndex((a) => a.id === id);
       if (index > -1) {
         layer.annotations[index] = updatedAnnotation;
       }
@@ -312,14 +330,14 @@ export class PDFAnnotationManager {
 
     // Add to history
     this.addToHistory({
-      type: 'edit',
+      type: "edit",
       annotationId: id,
       beforeState,
       afterState: updatedAnnotation,
       timestamp: new Date(),
     });
 
-    this.emit('annotationUpdated', updatedAnnotation);
+    this.emit("annotationUpdated", updatedAnnotation);
     return true;
   }
 
@@ -334,7 +352,7 @@ export class PDFAnnotationManager {
     // Remove from layer
     const layer = this.layers.get(annotation.pageIndex);
     if (layer) {
-      const index = layer.annotations.findIndex(a => a.id === id);
+      const index = layer.annotations.findIndex((a) => a.id === id);
       if (index > -1) {
         layer.annotations.splice(index, 1);
       }
@@ -342,13 +360,13 @@ export class PDFAnnotationManager {
 
     // Add to history
     this.addToHistory({
-      type: 'delete',
+      type: "delete",
       annotationId: id,
       beforeState: annotation,
       timestamp: new Date(),
     });
 
-    this.emit('annotationDeleted', { id, annotation });
+    this.emit("annotationDeleted", { id, annotation });
     return true;
   }
 
@@ -361,17 +379,17 @@ export class PDFAnnotationManager {
     createdBy: string
   ): string {
     return this.addAnnotation({
-      type: 'highlight',
+      type: "highlight",
       pageIndex,
-      rectangles: rectangles,
+      rectangles,
       selectedText,
-      blendMode: 'multiply',
+      blendMode: "multiply",
       color,
       opacity: color.a || 0.3,
       isVisible: true,
       isLocked: false,
       createdBy,
-    });
+    } as Omit<HighlightAnnotation, "id" | "createdAt" | "updatedAt">);
   }
 
   createComment(
@@ -379,10 +397,10 @@ export class PDFAnnotationManager {
     position: Point,
     content: string,
     createdBy: string,
-    iconType: CommentAnnotation['iconType'] = 'note'
+    iconType: CommentAnnotation["iconType"] = "note"
   ): string {
     return this.addAnnotation({
-      type: 'comment',
+      type: "comment",
       pageIndex,
       position,
       content,
@@ -395,19 +413,19 @@ export class PDFAnnotationManager {
       isVisible: true,
       isLocked: false,
       createdBy,
-    });
+    } as Omit<CommentAnnotation, "id" | "createdAt" | "updatedAt">);
   }
 
   createStamp(
     pageIndex: number,
     position: Point,
-    stampType: StampAnnotation['stampType'],
+    stampType: StampAnnotation["stampType"],
     createdBy: string,
     customText?: string,
     customImage?: string
   ): string {
     return this.addAnnotation({
-      type: 'stamp',
+      type: "stamp",
       pageIndex,
       position,
       size: { width: 100, height: 50 },
@@ -420,7 +438,7 @@ export class PDFAnnotationManager {
       isVisible: true,
       isLocked: false,
       createdBy,
-    });
+    } as Omit<StampAnnotation, "id" | "createdAt" | "updatedAt">);
   }
 
   createDrawing(
@@ -431,23 +449,89 @@ export class PDFAnnotationManager {
     createdBy: string
   ): string {
     return this.addAnnotation({
-      type: 'drawing',
+      type: "drawing",
       pageIndex,
       paths,
       strokeWidth,
-      strokeStyle: 'solid',
+      strokeStyle: "solid",
       color,
       opacity: 1,
       isVisible: true,
       isLocked: false,
       createdBy,
-    });
+    } as Omit<DrawingAnnotation, "id" | "createdAt" | "updatedAt">);
+  }
+
+  createText(
+    pageIndex: number,
+    position: Point,
+    content: string,
+    fontSize: number,
+    fontFamily: string,
+    fontStyle: TextAnnotation["fontStyle"],
+    alignment: TextAnnotation["alignment"],
+    rotation: number,
+    createdBy: string,
+    backgroundColor?: AnnotationColor,
+    borderColor?: AnnotationColor,
+    borderWidth?: number
+  ): string {
+    return this.addAnnotation({
+      type: "text",
+      pageIndex,
+      position,
+      content,
+      fontSize,
+      fontFamily,
+      fontStyle,
+      alignment,
+      rotation,
+      backgroundColor,
+      borderColor,
+      borderWidth,
+      color: { r: 0, g: 0, b: 0 }, // Default to black text
+      opacity: 1,
+      isVisible: true,
+      isLocked: false,
+      createdBy,
+    } as Omit<TextAnnotation, "id" | "createdAt" | "updatedAt">);
+  }
+
+  createLink(
+    pageIndex: number,
+    rectangle: Rectangle,
+    url: string,
+    linkType: LinkAnnotation["linkType"],
+    createdBy: string,
+    displayText?: string,
+    targetPage?: number,
+    targetFile?: string
+  ): string {
+    return this.addAnnotation({
+      type: "link",
+      pageIndex,
+      rectangle,
+      url,
+      displayText,
+      linkType,
+      targetPage,
+      targetFile,
+      color: { r: 0, g: 0, b: 1 }, // Default to blue link
+      opacity: 1,
+      isVisible: true,
+      isLocked: false,
+      createdBy,
+    } as Omit<LinkAnnotation, "id" | "createdAt" | "updatedAt">);
   }
 
   // Comment management
-  addCommentReply(annotationId: string, content: string, createdBy: string): boolean {
+  addCommentReply(
+    annotationId: string,
+    content: string,
+    createdBy: string
+  ): boolean {
     const annotation = this.annotations.get(annotationId);
-    if (!annotation || annotation.type !== 'comment') {
+    if (!annotation || annotation.type !== "comment") {
       return false;
     }
 
@@ -462,20 +546,20 @@ export class PDFAnnotationManager {
     (annotation as CommentAnnotation).replies.push(reply);
     annotation.updatedAt = new Date();
 
-    this.emit('annotationUpdated', annotation);
+    this.emit("annotationUpdated", annotation);
     return true;
   }
 
   resolveComment(annotationId: string): boolean {
     const annotation = this.annotations.get(annotationId);
-    if (!annotation || annotation.type !== 'comment') {
+    if (!annotation || annotation.type !== "comment") {
       return false;
     }
 
     (annotation as CommentAnnotation).isResolved = true;
     annotation.updatedAt = new Date();
 
-    this.emit('annotationUpdated', annotation);
+    this.emit("annotationUpdated", annotation);
     return true;
   }
 
@@ -488,19 +572,29 @@ export class PDFAnnotationManager {
       let matches = false;
 
       switch (annotation.type) {
-        case 'highlight':
-          matches = (annotation as HighlightAnnotation).selectedText.toLowerCase().includes(lowerQuery);
+        case "highlight":
+          matches = (annotation as HighlightAnnotation).selectedText
+            .toLowerCase()
+            .includes(lowerQuery);
           break;
-        case 'comment':
+        case "comment":
           const comment = annotation as CommentAnnotation;
-          matches = comment.content.toLowerCase().includes(lowerQuery) ||
-                   comment.replies.some(reply => reply.content.toLowerCase().includes(lowerQuery));
+          matches =
+            comment.content.toLowerCase().includes(lowerQuery) ||
+            comment.replies.some((reply) =>
+              reply.content.toLowerCase().includes(lowerQuery)
+            );
           break;
-        case 'text':
-          matches = (annotation as TextAnnotation).content.toLowerCase().includes(lowerQuery);
+        case "text":
+          matches = (annotation as TextAnnotation).content
+            .toLowerCase()
+            .includes(lowerQuery);
           break;
-        case 'stamp':
-          matches = (annotation as StampAnnotation).text?.toLowerCase().includes(lowerQuery) || false;
+        case "stamp":
+          matches =
+            (annotation as StampAnnotation).text
+              ?.toLowerCase()
+              .includes(lowerQuery) || false;
           break;
       }
 
@@ -514,22 +608,24 @@ export class PDFAnnotationManager {
 
   getAnnotationsByPage(pageIndex: number): Annotation[] {
     const layer = this.layers.get(pageIndex);
-    return layer ? layer.annotations.filter(a => a.isVisible) : [];
+    return layer ? layer.annotations.filter((a) => a.isVisible) : [];
   }
 
   getAnnotationsByType(type: AnnotationType): Annotation[] {
-    return Array.from(this.annotations.values()).filter(a => a.type === type);
+    return Array.from(this.annotations.values()).filter((a) => a.type === type);
   }
 
   getAnnotationsByUser(userId: string): Annotation[] {
-    return Array.from(this.annotations.values()).filter(a => a.createdBy === userId);
+    return Array.from(this.annotations.values()).filter(
+      (a) => a.createdBy === userId
+    );
   }
 
   // History management
   private addToHistory(operation: AnnotationOperation) {
     // Remove any operations after current index (for redo)
     this.history = this.history.slice(0, this.historyIndex + 1);
-    
+
     // Add new operation
     this.history.push(operation);
     this.historyIndex++;
@@ -559,17 +655,22 @@ export class PDFAnnotationManager {
 
     // Reverse the operation
     switch (operation.type) {
-      case 'add':
+      case "add":
         if (operation.afterState) {
           this.deleteAnnotation(operation.annotationId);
         }
         break;
-      case 'delete':
+      case "delete":
         if (operation.beforeState) {
-          this.addAnnotation(operation.beforeState as Omit<Annotation, 'id' | 'createdAt' | 'updatedAt'>);
+          this.addAnnotation(
+            operation.beforeState as Omit<
+              Annotation,
+              "id" | "createdAt" | "updatedAt"
+            >
+          );
         }
         break;
-      case 'edit':
+      case "edit":
         if (operation.beforeState) {
           this.updateAnnotation(operation.annotationId, operation.beforeState);
         }
@@ -589,15 +690,20 @@ export class PDFAnnotationManager {
 
     // Reapply the operation
     switch (operation.type) {
-      case 'add':
+      case "add":
         if (operation.afterState) {
-          this.addAnnotation(operation.afterState as Omit<Annotation, 'id' | 'createdAt' | 'updatedAt'>);
+          this.addAnnotation(
+            operation.afterState as Omit<
+              Annotation,
+              "id" | "createdAt" | "updatedAt"
+            >
+          );
         }
         break;
-      case 'delete':
+      case "delete":
         this.deleteAnnotation(operation.annotationId);
         break;
-      case 'edit':
+      case "edit":
         if (operation.afterState) {
           this.updateAnnotation(operation.annotationId, operation.afterState);
         }
@@ -620,7 +726,7 @@ export class PDFAnnotationManager {
   importAnnotations(jsonData: string): boolean {
     try {
       const data = JSON.parse(jsonData);
-      
+
       // Clear existing data
       this.annotations.clear();
       this.layers.clear();
@@ -633,7 +739,7 @@ export class PDFAnnotationManager {
           // Convert date strings back to Date objects
           annotation.createdAt = new Date(annotation.createdAt);
           annotation.updatedAt = new Date(annotation.updatedAt);
-          
+
           this.annotations.set(annotation.id, annotation);
         }
       }
@@ -647,7 +753,7 @@ export class PDFAnnotationManager {
 
       return true;
     } catch (error) {
-      console.error('Failed to import annotations:', error);
+      console.error("Failed to import annotations:", error);
       return false;
     }
   }
@@ -657,14 +763,22 @@ export class PDFAnnotationManager {
     return `ann_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`;
   }
 
-  private getStampColor(stampType: StampAnnotation['stampType']): AnnotationColor {
+  private getStampColor(
+    stampType: StampAnnotation["stampType"]
+  ): AnnotationColor {
     switch (stampType) {
-      case 'approved': return { r: 0, g: 0.8, b: 0 };
-      case 'rejected': return { r: 0.8, g: 0, b: 0 };
-      case 'draft': return { r: 0, g: 0, b: 0.8 };
-      case 'confidential': return { r: 0.8, g: 0, b: 0.8 };
-      case 'urgent': return { r: 1, g: 0.5, b: 0 };
-      default: return { r: 0, g: 0, b: 0 };
+      case "approved":
+        return { r: 0, g: 0.8, b: 0 };
+      case "rejected":
+        return { r: 0.8, g: 0, b: 0 };
+      case "draft":
+        return { r: 0, g: 0, b: 0.8 };
+      case "confidential":
+        return { r: 0.8, g: 0, b: 0.8 };
+      case "urgent":
+        return { r: 1, g: 0.5, b: 0 };
+      default:
+        return { r: 0, g: 0, b: 0 };
     }
   }
 
@@ -681,12 +795,13 @@ export class PDFAnnotationManager {
     for (const annotation of this.annotations.values()) {
       // Count by type
       stats.byType[annotation.type] = (stats.byType[annotation.type] || 0) + 1;
-      
+
       // Count by page
-      stats.byPage[annotation.pageIndex] = (stats.byPage[annotation.pageIndex] || 0) + 1;
-      
+      stats.byPage[annotation.pageIndex] =
+        (stats.byPage[annotation.pageIndex] || 0) + 1;
+
       // Count resolved/unresolved comments
-      if (annotation.type === 'comment') {
+      if (annotation.type === "comment") {
         if ((annotation as CommentAnnotation).isResolved) {
           stats.resolved++;
         } else {
@@ -716,7 +831,7 @@ export function createAnnotationManager(): PDFAnnotationManager {
   return new PDFAnnotationManager();
 }
 
-export function validateAnnotation(annotation: any): annotation is Annotation {
+export function validateAnnotation(annotation: unknown): annotation is Annotation {
   try {
     BaseAnnotationSchema.parse(annotation);
     return true;
@@ -725,14 +840,23 @@ export function validateAnnotation(annotation: any): annotation is Annotation {
   }
 }
 
-export function getDefaultAnnotationColor(type: AnnotationType): AnnotationColor {
+export function getDefaultAnnotationColor(
+  type: AnnotationType
+): AnnotationColor {
   switch (type) {
-    case 'highlight': return { r: 1, g: 1, b: 0, a: 0.3 };
-    case 'comment': return { r: 1, g: 1, b: 0 };
-    case 'stamp': return { r: 0.8, g: 0, b: 0 };
-    case 'drawing': return { r: 0, g: 0, b: 0 };
-    case 'text': return { r: 0, g: 0, b: 0 };
-    case 'link': return { r: 0, g: 0, b: 1 };
-    default: return { r: 0, g: 0, b: 0 };
+    case "highlight":
+      return { r: 1, g: 1, b: 0, a: 0.3 };
+    case "comment":
+      return { r: 1, g: 1, b: 0 };
+    case "stamp":
+      return { r: 0.8, g: 0, b: 0 };
+    case "drawing":
+      return { r: 0, g: 0, b: 0 };
+    case "text":
+      return { r: 0, g: 0, b: 0 };
+    case "link":
+      return { r: 0, g: 0, b: 1 };
+    default:
+      return { r: 0, g: 0, b: 0 };
   }
 }

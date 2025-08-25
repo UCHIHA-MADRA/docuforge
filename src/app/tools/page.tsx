@@ -1,11 +1,11 @@
 "use client";
 
 import { useState, useCallback, useRef, useEffect } from "react";
+import { useRouter } from "next/navigation";
 import DocumentConverter from "@/components/tools/DocumentConverter";
 import OCRExtractor from "@/components/tools/OCRExtractor";
 import SpreadsheetEngine from "@/components/spreadsheet/SpreadsheetEngine";
-import ThemeToggle from "@/components/theme/ThemeToggle";
-import ThemeSettings from "@/components/theme/ThemeSettings";
+import ClientEnhancedThemeToggle from "@/components/theme/ClientEnhancedThemeToggle";
 
 interface FileWithPreview extends File {
   preview: string;
@@ -260,6 +260,22 @@ const Scan = ({ className }: { className?: string }) => (
   </svg>
 );
 
+const Scissors = ({ className }: { className?: string }) => (
+  <svg
+    className={className}
+    fill="none"
+    stroke="currentColor"
+    viewBox="0 0 24 24"
+  >
+    <path
+      strokeLinecap="round"
+      strokeLinejoin="round"
+      strokeWidth={2}
+      d="M14.121 14.121L19 19m-7-7l7-7m-7 7l-2.879 2.879M12 12L9.121 9.121m0 5.758a3 3 0 10-4.243 4.243 3 3 0 004.243-4.243zm0-5.758a3 3 0 10-4.243-4.243 3 3 0 004.243 4.243z"
+    />
+  </svg>
+);
+
 const Table = ({ className }: { className?: string }) => (
   <svg
     className={className}
@@ -276,12 +292,12 @@ const Table = ({ className }: { className?: string }) => (
   </svg>
 );
 
-export default function PDFToolsPage() {
+export default function ToolsPage() {
   // Tab state for different tools
   const [activeTab, setActiveTab] = useState<
     "merge" | "split" | "compress" | "convert" | "ocr" | "document-convert" | "spreadsheet"
   >("merge");
-  const [showThemeSettings, setShowThemeSettings] = useState(false);
+  const router = useRouter();
   const [files, setFiles] = useState<FileWithPreview[]>([]);
   const [isProcessing, setIsProcessing] = useState(false);
   const [error, setError] = useState("");
@@ -639,11 +655,15 @@ export default function PDFToolsPage() {
             </div>
 
             <div className="flex items-center space-x-4">
-              <ThemeToggle />
               <Button
                 variant="outline"
                 size="sm"
-                onClick={() => setShowThemeSettings(true)}
+                onClick={() => {
+                  const themeToggle = document.getElementById('theme-toggle');
+                  if (themeToggle) {
+                    themeToggle.click();
+                  }
+                }}
                 className="flex items-center gap-2"
               >
                 <svg className="h-4 w-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -953,59 +973,43 @@ export default function PDFToolsPage() {
         {/* Split PDF Tool */}
         {activeTab === "split" && (
           <div className="bg-white rounded-lg shadow-lg border border-gray-200 p-6">
-            <h3 className="text-lg font-semibold text-gray-900 mb-4">
-              Split PDF
-            </h3>
-            <div className="grid gap-4">
-              <div>
-                <label className="block text-sm font-medium text-gray-700 mb-2">
-                  PDF File
-                </label>
-                <input
-                  type="file"
-                  accept="application/pdf"
-                  onChange={(e) => setSplitFile(e.target.files?.[0] || null)}
-                  className="block w-full text-sm text-gray-900 border border-gray-300 rounded-lg cursor-pointer bg-gray-50 focus:outline-none"
-                />
-              </div>
-              <div>
-                <label className="block text-sm font-medium text-gray-700 mb-2">
-                  Pages (e.g., 1-3,5,7-9)
-                </label>
-                <input
-                  type="text"
-                  value={splitPages}
-                  onChange={(e) => setSplitPages(e.target.value)}
-                  placeholder="Pages to extract"
-                  className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent"
-                />
-              </div>
-              <div>
-                <Button
-                  onClick={async () => {
-                    if (!splitFile || !splitPages.trim()) {
-                      setError("Select a PDF and specify pages to extract");
-                      return;
-                    }
-                    setError("");
-                    setIsSplitting(true);
-                    try {
-                      // Simulate processing
-                      await new Promise((resolve) => setTimeout(resolve, 2000));
-                      setSuccess(
-                        "Split successful! (Demo mode - no actual split performed)"
-                      );
-                    } catch (e) {
-                      setError("Split failed");
-                    } finally {
-                      setIsSplitting(false);
-                    }
+            <div className="flex items-center space-x-3 mb-6">
+              <Scissors className="h-6 w-6 text-blue-600" />
+              <h3 className="text-xl font-semibold text-gray-900">
+                Split PDF
+              </h3>
+            </div>
+            
+            <p className="text-gray-600 mb-6">
+              Extract specific pages from your PDF documents with our advanced PDF splitter tool.
+              You can visually preview pages and select which ones to extract.
+            </p>
+            
+            <div className="flex flex-col space-y-4">
+              <div className="flex items-center justify-center">
+                <img 
+                  src="/images/pdf-split-preview.svg" 
+                  alt="PDF Split Preview" 
+                  className="w-64 h-auto opacity-80"
+                  onError={(e) => {
+                    // Fallback if image doesn't exist
+                    e.currentTarget.style.display = 'none';
                   }}
-                  disabled={isSplitting}
-                >
-                  {isSplitting ? "Splitting..." : "Split PDF"}
-                </Button>
+                />
               </div>
+              
+              <Button
+                onClick={() => router.push('/tools/pdf-splitter')}
+                className="w-full"
+                size="lg"
+              >
+                <Scissors className="h-5 w-5 mr-2" />
+                Open PDF Splitter
+              </Button>
+              
+              <p className="text-sm text-gray-500 text-center">
+                Split PDFs by page ranges with visual preview
+              </p>
             </div>
           </div>
         )}
@@ -1289,10 +1293,7 @@ export default function PDFToolsPage() {
         )}
       </main>
 
-      {/* Theme Settings Modal */}
-      {showThemeSettings && (
-        <ThemeSettings onClose={() => setShowThemeSettings(false)} />
-      )}
+
     </div>
   );
 }

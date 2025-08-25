@@ -12,7 +12,7 @@ export async function GET(request: NextRequest) {
     // Check if user is authenticated and has admin role
     if (!session?.user) {
       await auditHooks.logUnauthorizedAccess(
-        request.ip || 'unknown',
+        request.headers.get('x-forwarded-for') || 'unknown',
         request.headers.get('user-agent') || 'unknown',
         '/api/audit/stats'
       );
@@ -20,10 +20,10 @@ export async function GET(request: NextRequest) {
     }
     
     // Check if user has admin privileges
-    const userRole = (session.user as any).role;
+const userRole = (session.user as unknown as { role: 'ADMIN' | 'SUPER_ADMIN' }).role;
     if (userRole !== 'ADMIN' && userRole !== 'SUPER_ADMIN') {
       await auditHooks.logUnauthorizedAccess(
-        request.ip || 'unknown',
+        request.headers.get('x-forwarded-for') || 'unknown',
         request.headers.get('user-agent') || 'unknown',
         '/api/audit/stats'
       );
@@ -52,9 +52,9 @@ export async function GET(request: NextRequest) {
     await auditLogger.log({
       eventType: AuditEventType.SYSTEM_ERROR, // You might want to create AUDIT_STATS_QUERY event type
       userId: session.user.id,
-      userEmail: session.user.email,
-      ipAddress: request.ip,
-      userAgent: request.headers.get('user-agent'),
+      userEmail: session.user.email || undefined,
+      ipAddress: request.headers.get('x-forwarded-for') || 'unknown',
+      userAgent: request.headers.get('user-agent') || undefined,
       action: `Queried audit statistics for ${timeframe}`,
       details: {
         timeframe,
@@ -80,9 +80,9 @@ export async function GET(request: NextRequest) {
       await auditLogger.log({
         eventType: AuditEventType.SYSTEM_ERROR,
         userId: session?.user?.id,
-        userEmail: session?.user?.email,
-        ipAddress: request.ip,
-        userAgent: request.headers.get('user-agent'),
+        userEmail: session?.user?.email || undefined,
+        ipAddress: request.headers.get('x-forwarded-for') || 'unknown',
+        userAgent: request.headers.get('user-agent') || undefined,
         action: 'Failed to get audit statistics',
         details: {
           error: error instanceof Error ? error.message : 'Unknown error',
@@ -154,7 +154,7 @@ async function getAuditInsights(timeframe: 'day' | 'week' | 'month') {
 }
 
 // Helper functions for insights
-function getTopUsers(logs: any[]) {
+function getTopUsers(logs: Array<{ userEmail?: string }>) {
   const userCounts = logs.reduce((acc, log) => {
     if (log.userEmail) {
       acc[log.userEmail] = (acc[log.userEmail] || 0) + 1;
@@ -168,7 +168,7 @@ function getTopUsers(logs: any[]) {
     .map(([email, count]) => ({ email, count }));
 }
 
-function getTopEventTypes(logs: any[]) {
+function getTopEventTypes(logs: Array<{ eventType: string }>) {
   const eventCounts = logs.reduce((acc, log) => {
     acc[log.eventType] = (acc[log.eventType] || 0) + 1;
     return acc;
@@ -180,7 +180,7 @@ function getTopEventTypes(logs: any[]) {
     .map(([eventType, count]) => ({ eventType, count }));
 }
 
-function getRiskTrends(logs: any[]) {
+function getRiskTrends(logs: Array<{ riskLevel: string }>) {
   const riskCounts = logs.reduce((acc, log) => {
     acc[log.riskLevel] = (acc[log.riskLevel] || 0) + 1;
     return acc;
@@ -189,13 +189,13 @@ function getRiskTrends(logs: any[]) {
   return riskCounts;
 }
 
-function getFailureRate(logs: any[]) {
+function getFailureRate(logs: Array<{ success: boolean }>) {
   if (logs.length === 0) return 0;
   const failedLogs = logs.filter(log => !log.success);
   return (failedLogs.length / logs.length) * 100;
 }
 
-function getPeakHours(logs: any[]) {
+function getPeakHours(logs: Array<{ timestamp: Date | string }>) {
   const hourCounts = logs.reduce((acc, log) => {
     const hour = new Date(log.timestamp).getHours();
     acc[hour] = (acc[hour] || 0) + 1;
@@ -208,7 +208,15 @@ function getPeakHours(logs: any[]) {
     .map(([hour, count]) => ({ hour: parseInt(hour), count }));
 }
 
-function getSecurityAlerts(logs: any[]) {
+function getSecurityAlerts(logs: Array<{
+  id?: string;
+  eventType: string;
+  action: string;
+  riskLevel: string;
+  timestamp: Date | string;
+  userEmail?: string;
+  ipAddress?: string;
+}>) {
   const securityEvents = [
     AuditEventType.UNAUTHORIZED_ACCESS,
     AuditEventType.SUSPICIOUS_ACTIVITY,
@@ -217,7 +225,7 @@ function getSecurityAlerts(logs: any[]) {
   ];
   
   return logs
-    .filter(log => securityEvents.includes(log.eventType) || log.riskLevel === RiskLevel.CRITICAL)
+    .filter(log => securityEvents.includes(log.eventType as AuditEventType) || log.riskLevel === RiskLevel.CRITICAL)
     .sort((a, b) => new Date(b.timestamp).getTime() - new Date(a.timestamp).getTime())
     .slice(0, 20)
     .map(log => ({

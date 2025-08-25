@@ -1,14 +1,51 @@
-import { NextRequest, NextResponse } from 'next/server';
-import { getServerSession } from 'next-auth/next';
-import { authOptions } from '../../auth/[...nextauth]/route';
-import { prisma } from '@/lib/prisma';
-import { hasPermission, getUserWithRoles } from '@/lib/permissions';
-import { z } from 'zod';
+import { NextRequest, NextResponse } from "next/server";
+import { getServerSession } from "next-auth/next";
+import { authOptions } from "../../auth/[...nextauth]/route";
+import { prisma } from "@/lib/prisma";
+import { hasPermission, getUserWithRoles } from "@/lib/permissions";
+import { z } from "zod";
+
+// Define proper types based on Prisma schema
+interface OrganizationMember {
+  id: string;
+  organizationId: string;
+  userId: string;
+  role: string;
+  createdAt: Date;
+  updatedAt: Date;
+  organization: {
+    id: string;
+    name: string;
+  };
+}
+
+interface DocumentCollaborator {
+  id: string;
+  documentId: string;
+  userId: string;
+  role: string;
+  createdAt: Date;
+  updatedAt: Date;
+  document: {
+    id: string;
+    title: string;
+  };
+}
+
+interface UserWithRelations {
+  id: string;
+  email: string;
+  name: string | null;
+  image: string | null;
+  createdAt: Date;
+  organizations?: OrganizationMember[];
+  documentCollaborations?: DocumentCollaborator[];
+}
 
 // Validation schemas
 const assignRoleSchema = z.object({
   userId: z.string(),
-  role: z.enum(['member', 'moderator', 'admin', 'owner']),
+  role: z.enum(["VIEWER", "COMMENTER", "EDITOR", "ADMIN", "OWNER"]), // Include OWNER for organization roles
   organizationId: z.string().optional(),
   documentId: z.string().optional(),
 });
@@ -19,40 +56,87 @@ const removeRoleSchema = z.object({
   documentId: z.string().optional(),
 });
 
+// Role mapping functions
+function mapOrganizationRole(
+  role: string
+): "MEMBER" | "MODERATOR" | "ADMIN" | "OWNER" {
+  switch (role) {
+    case "VIEWER":
+    case "EDITOR":
+      return "MEMBER";
+    case "ADMIN":
+      return "ADMIN";
+    case "OWNER":
+      return "OWNER";
+    default:
+      return "MEMBER";
+  }
+}
+
+function mapDocumentRole(
+  role: string
+): "VIEWER" | "COMMENTER" | "EDITOR" | "ADMIN" | string {
+  switch (role) {
+    case "VIEWER":
+      return "VIEWER";
+    case "COMMENTER":
+      return "COMMENTER";
+    case "EDITOR":
+      return "EDITOR";
+    case "ADMIN":
+      return "ADMIN";
+    case "OWNER":
+      return "ADMIN"; // Map OWNER to ADMIN since OWNER is not in CollaborationRole
+    default:
+      return "VIEWER";
+  }
+}
+
 // GET - List user roles
 export async function GET(request: NextRequest) {
   try {
     const session = await getServerSession(authOptions);
-    
+
     if (!session?.user?.id) {
-      return NextResponse.json(
-        { error: 'Unauthorized' },
-        { status: 401 }
-      );
+      return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
     }
 
     // Check if user has admin permissions
     const currentUser = await getUserWithRoles(session.user.id);
-    if (!currentUser || !hasPermission(currentUser, 'admin:user_management')) {
+    if (!currentUser || !hasPermission(currentUser, "admin:user_management")) {
       return NextResponse.json(
-        { error: 'Insufficient permissions' },
+        { error: "Insufficient permissions" },
         { status: 403 }
       );
     }
 
     const { searchParams } = new URL(request.url);
-    const userId = searchParams.get('userId');
-    const organizationId = searchParams.get('organizationId');
-    const documentId = searchParams.get('documentId');
+    const userId = searchParams.get("userId");
 
     if (userId) {
       // Get roles for specific user
-      const userWithRoles = await getUserWithRoles(userId);
+      const userWithRoles = await prisma.user.findUnique({
+        where: { id: userId },
+        include: {
+          organizations: {
+            include: {
+              organization: {
+                select: { id: true, name: true },
+              },
+            },
+          },
+          documentCollaborations: {
+            include: {
+              document: {
+                select: { id: true, title: true },
+              },
+            },
+          },
+        },
+      });
+
       if (!userWithRoles) {
-        return NextResponse.json(
-          { error: 'User not found' },
-          { status: 404 }
-        );
+        return NextResponse.json({ error: "User not found" }, { status: 404 });
       }
 
       return NextResponse.json({
@@ -61,42 +145,58 @@ export async function GET(request: NextRequest) {
           email: userWithRoles.email,
           name: userWithRoles.name,
         },
-        organizationRoles: userWithRoles.organizationMembers?.map(member => ({
-          organizationId: member.organizationId,
-          role: member.role,
-          organization: {
-            id: member.organization.id,
-            name: member.organization.name,
-          },
-        })) || [],
-        documentRoles: userWithRoles.documentCollaborators?.map(collab => ({
-          documentId: collab.documentId,
-          role: collab.role,
-          document: {
-            id: collab.document.id,
-            title: collab.document.title,
-          },
-        })) || [],
+        organizationRoles:
+          userWithRoles.organizations?.map(
+            (member: OrganizationMember) => ({
+              organizationId: member.organizationId,
+              role: member.role,
+              organization: {
+                id: member.organization.id,
+                name: member.organization.name,
+              },
+            })
+          ) || [],
+        documentRoles:
+          userWithRoles.documentCollaborations?.map(
+            (collab: { 
+              id: string;
+              documentId: string;
+              userId: string;
+              role: string;
+              joinedAt: Date;
+              document: {
+                id: string;
+                title: string;
+              }
+            }) => ({
+              documentId: collab.documentId,
+              role: collab.role,
+              document: {
+                id: collab.document.id,
+                title: collab.document.title,
+              },
+            })
+          ) || [],
       });
     }
 
     // List all users with their roles (paginated)
-    const page = parseInt(searchParams.get('page') || '1');
-    const limit = parseInt(searchParams.get('limit') || '20');
+    const page = parseInt(searchParams.get("page") || "1");
+    const limit = parseInt(searchParams.get("limit") || "20");
     const skip = (page - 1) * limit;
 
     const users = await prisma.user.findMany({
       skip,
       take: limit,
       include: {
-        organizationMembers: {
+        organizations: {
           include: {
             organization: {
               select: { id: true, name: true },
             },
           },
         },
-        documentCollaborators: {
+        documentCollaborations: {
           include: {
             document: {
               select: { id: true, title: true },
@@ -104,28 +204,40 @@ export async function GET(request: NextRequest) {
           },
         },
       },
-      orderBy: { createdAt: 'desc' },
+      orderBy: { createdAt: "desc" },
     });
 
     const total = await prisma.user.count();
 
     return NextResponse.json({
-      users: users.map(user => ({
+      users: users.map((user) => ({
         id: user.id,
         email: user.email,
         name: user.name,
         image: user.image,
         createdAt: user.createdAt,
-        organizationRoles: user.organizationMembers.map(member => ({
-          organizationId: member.organizationId,
-          role: member.role,
-          organization: member.organization,
-        })),
-        documentRoles: user.documentCollaborators.map(collab => ({
-          documentId: collab.documentId,
-          role: collab.role,
-          document: collab.document,
-        })),
+        organizationRoles:
+          user.organizations?.map((member: OrganizationMember) => ({
+            organizationId: member.organizationId,
+            role: member.role,
+            organization: member.organization,
+          })) || [],
+        documentRoles:
+          user.documentCollaborations?.map((collab: { 
+            id: string;
+            documentId: string;
+            userId: string;
+            role: string;
+            joinedAt: Date;
+            document: {
+              id: string;
+              title: string;
+            }
+          }) => ({
+            documentId: collab.documentId,
+            role: collab.role,
+            document: collab.document,
+          })) || [],
       })),
       pagination: {
         page,
@@ -135,9 +247,9 @@ export async function GET(request: NextRequest) {
       },
     });
   } catch (error) {
-    console.error('Error fetching roles:', error);
+    console.error("Error fetching roles:", error);
     return NextResponse.json(
-      { error: 'Internal server error' },
+      { error: "Internal server error" },
       { status: 500 }
     );
   }
@@ -147,25 +259,23 @@ export async function GET(request: NextRequest) {
 export async function POST(request: NextRequest) {
   try {
     const session = await getServerSession(authOptions);
-    
+
     if (!session?.user?.id) {
-      return NextResponse.json(
-        { error: 'Unauthorized' },
-        { status: 401 }
-      );
+      return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
     }
 
     // Check if user has admin permissions
     const currentUser = await getUserWithRoles(session.user.id);
-    if (!currentUser || !hasPermission(currentUser, 'admin:user_management')) {
+    if (!currentUser || !hasPermission(currentUser, "admin:user_management")) {
       return NextResponse.json(
-        { error: 'Insufficient permissions' },
+        { error: "Insufficient permissions" },
         { status: 403 }
       );
     }
 
     const body = await request.json();
-    const { userId, role, organizationId, documentId } = assignRoleSchema.parse(body);
+    const { userId, role, organizationId, documentId } =
+      assignRoleSchema.parse(body);
 
     // Validate that user exists
     const targetUser = await prisma.user.findUnique({
@@ -173,10 +283,7 @@ export async function POST(request: NextRequest) {
     });
 
     if (!targetUser) {
-      return NextResponse.json(
-        { error: 'User not found' },
-        { status: 404 }
-      );
+      return NextResponse.json({ error: "User not found" }, { status: 404 });
     }
 
     if (organizationId) {
@@ -187,31 +294,30 @@ export async function POST(request: NextRequest) {
 
       if (!organization) {
         return NextResponse.json(
-          { error: 'Organization not found' },
+          { error: "Organization not found" },
           { status: 404 }
         );
       }
 
       // Check if user is already a member
-      const existingMember = await prisma.organizationMember.findUnique({
+      const existingMember = await prisma.organizationMember.findFirst({
         where: {
-          userId_organizationId: {
-            userId,
-            organizationId,
-          },
+          organizationId,
+          userId,
         },
       });
+
+      const mappedRole = mapOrganizationRole(role);
 
       if (existingMember) {
         // Update existing role
         await prisma.organizationMember.update({
           where: {
-            userId_organizationId: {
-              userId,
-              organizationId,
-            },
+            id: existingMember.id,
           },
-          data: { role },
+          data: {
+            role: mappedRole,
+          },
         });
       } else {
         // Create new membership
@@ -219,16 +325,16 @@ export async function POST(request: NextRequest) {
           data: {
             userId,
             organizationId,
-            role,
+            role: mappedRole,
           },
         });
       }
 
       return NextResponse.json({
-        message: 'Organization role assigned successfully',
+        message: "Organization role assigned successfully",
         userId,
         organizationId,
-        role,
+        role: mappedRole,
       });
     }
 
@@ -240,31 +346,30 @@ export async function POST(request: NextRequest) {
 
       if (!document) {
         return NextResponse.json(
-          { error: 'Document not found' },
+          { error: "Document not found" },
           { status: 404 }
         );
       }
 
       // Check if user is already a collaborator
-      const existingCollaborator = await prisma.documentCollaborator.findUnique({
+      const existingCollaborator = await prisma.documentCollaborator.findFirst({
         where: {
-          userId_documentId: {
-            userId,
-            documentId,
-          },
+          userId,
+          documentId,
         },
       });
+
+      const mappedRole = mapDocumentRole(role);
 
       if (existingCollaborator) {
         // Update existing role
         await prisma.documentCollaborator.update({
           where: {
-            userId_documentId: {
-              userId,
-              documentId,
-            },
+            id: existingCollaborator.id,
           },
-          data: { role },
+          data: {
+            role: mappedRole as "VIEWER" | "COMMENTER" | "EDITOR" | "ADMIN",
+          },
         });
       } else {
         // Create new collaboration
@@ -272,34 +377,34 @@ export async function POST(request: NextRequest) {
           data: {
             userId,
             documentId,
-            role,
+            role: mappedRole as "VIEWER" | "COMMENTER" | "EDITOR" | "ADMIN",
           },
         });
       }
 
       return NextResponse.json({
-        message: 'Document role assigned successfully',
+        message: "Document role assigned successfully",
         userId,
         documentId,
-        role,
+        role: mappedRole,
       });
     }
 
     return NextResponse.json(
-      { error: 'Either organizationId or documentId must be provided' },
+      { error: "Either organizationId or documentId must be provided" },
       { status: 400 }
     );
   } catch (error) {
     if (error instanceof z.ZodError) {
       return NextResponse.json(
-        { error: 'Invalid request data', details: error.errors },
+        { error: "Invalid request data", details: error.errors },
         { status: 400 }
       );
     }
 
-    console.error('Error assigning role:', error);
+    console.error("Error assigning role:", error);
     return NextResponse.json(
-      { error: 'Internal server error' },
+      { error: "Internal server error" },
       { status: 500 }
     );
   }
@@ -309,19 +414,16 @@ export async function POST(request: NextRequest) {
 export async function DELETE(request: NextRequest) {
   try {
     const session = await getServerSession(authOptions);
-    
+
     if (!session?.user?.id) {
-      return NextResponse.json(
-        { error: 'Unauthorized' },
-        { status: 401 }
-      );
+      return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
     }
 
     // Check if user has admin permissions
     const currentUser = await getUserWithRoles(session.user.id);
-    if (!currentUser || !hasPermission(currentUser, 'admin:user_management')) {
+    if (!currentUser || !hasPermission(currentUser, "admin:user_management")) {
       return NextResponse.json(
-        { error: 'Insufficient permissions' },
+        { error: "Insufficient permissions" },
         { status: 403 }
       );
     }
@@ -340,13 +442,13 @@ export async function DELETE(request: NextRequest) {
 
       if (deleted.count === 0) {
         return NextResponse.json(
-          { error: 'Organization membership not found' },
+          { error: "Organization membership not found" },
           { status: 404 }
         );
       }
 
       return NextResponse.json({
-        message: 'Organization role removed successfully',
+        message: "Organization role removed successfully",
         userId,
         organizationId,
       });
@@ -363,33 +465,33 @@ export async function DELETE(request: NextRequest) {
 
       if (deleted.count === 0) {
         return NextResponse.json(
-          { error: 'Document collaboration not found' },
+          { error: "Document collaboration not found" },
           { status: 404 }
         );
       }
 
       return NextResponse.json({
-        message: 'Document role removed successfully',
+        message: "Document role removed successfully",
         userId,
         documentId,
       });
     }
 
     return NextResponse.json(
-      { error: 'Either organizationId or documentId must be provided' },
+      { error: "Either organizationId or documentId must be provided" },
       { status: 400 }
     );
   } catch (error) {
     if (error instanceof z.ZodError) {
       return NextResponse.json(
-        { error: 'Invalid request data', details: error.errors },
+        { error: "Invalid request data", details: error.errors },
         { status: 400 }
       );
     }
 
-    console.error('Error removing role:', error);
+    console.error("Error removing role:", error);
     return NextResponse.json(
-      { error: 'Internal server error' },
+      { error: "Internal server error" },
       { status: 500 }
     );
   }

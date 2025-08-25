@@ -1,6 +1,6 @@
 'use client';
 
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useCallback } from 'react';
 import { useParams, useRouter } from 'next/navigation';
 import { useSession } from 'next-auth/react';
 import { toast } from 'sonner';
@@ -18,9 +18,10 @@ interface FileData {
   size: number;
 }
 
-interface PDFEditPageProps {}
+// Using React.PropsWithChildren instead of empty interface
+type PDFEditPageProps = React.PropsWithChildren<object>
 
-const PDFEditPage: React.FC<PDFEditPageProps> = () => {
+const PDFEditPage = () => {
   const params = useParams();
   const router = useRouter();
   const { data: session } = useSession();
@@ -32,13 +33,7 @@ const PDFEditPage: React.FC<PDFEditPageProps> = () => {
 
   const fileId = params.fileId as string;
 
-  useEffect(() => {
-    if (fileId && session) {
-      loadPDFForEditing();
-    }
-  }, [fileId, session]);
-
-  const loadPDFForEditing = async () => {
+  const loadPDFForEditing = useCallback(async () => {
     try {
       setLoading(true);
       setError(null);
@@ -65,7 +60,15 @@ const PDFEditPage: React.FC<PDFEditPageProps> = () => {
     } finally {
       setLoading(false);
     }
-  };
+  }, [fileId]);
+
+  useEffect(() => {
+    if (fileId && session) {
+      loadPDFForEditing();
+    }
+  }, [fileId, session, loadPDFForEditing]);
+
+
 
   const handleSave = async (pdfBuffer: Uint8Array) => {
     try {
@@ -167,7 +170,7 @@ const PDFEditPage: React.FC<PDFEditPageProps> = () => {
   }
 
   return (
-    <AuthGuard requireAuth>
+    <AuthGuard>
       <div className="min-h-screen bg-background">
         {/* Header */}
         <div className="border-b bg-background/95 backdrop-blur supports-[backdrop-filter]:bg-background/60">

@@ -5,17 +5,24 @@ import { signIn, getSession } from "next-auth/react";
 import { useRouter } from "next/navigation";
 import Link from "next/link";
 import { Button } from "@/components/ui/button";
-import { FileText, ArrowLeft, CheckCircle } from "lucide-react";
+import { Input } from "@/components/ui/input";
+import { Label } from "@/components/ui/label";
+import { FileText, ArrowLeft, CheckCircle, Mail, Lock, User } from "lucide-react";
 
 export default function SignUpPage() {
   const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState("");
+  const [email, setEmail] = useState("");
+  const [password, setPassword] = useState("");
+  const [name, setName] = useState("");
+  const [successMessage, setSuccessMessage] = useState("");
   const router = useRouter();
 
   const handleGoogleSignUp = async () => {
     try {
       setIsLoading(true);
       setError("");
+      setSuccessMessage("");
 
       const result = await signIn("google", {
         callbackUrl: "/dashboard",
@@ -29,6 +36,103 @@ export default function SignUpPage() {
       }
     } catch (error) {
       setError("An unexpected error occurred.");
+    } finally {
+      setIsLoading(false);
+    }
+  };
+
+  const handleEmailSignUp = async (e: React.FormEvent) => {
+    e.preventDefault();
+    try {
+      setIsLoading(true);
+      setError("");
+      setSuccessMessage("");
+
+      // Email validation
+      if (!email) {
+        setError("Email is required");
+        setIsLoading(false);
+        return;
+      }
+
+      const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+      if (!emailRegex.test(email)) {
+        setError("Please enter a valid email address");
+        setIsLoading(false);
+        return;
+      }
+
+      // Password validation
+      if (!password) {
+        setError("Password is required");
+        setIsLoading(false);
+        return;
+      }
+
+      if (password.length < 8) {
+        setError("Password must be at least 8 characters");
+        setIsLoading(false);
+        return;
+      }
+
+      // Password strength check
+      const hasUpperCase = /[A-Z]/.test(password);
+      const hasLowerCase = /[a-z]/.test(password);
+      const hasNumbers = /\d/.test(password);
+      const hasSpecialChar = /[!@#$%^&*(),.?":{}|<>]/.test(password);
+      
+      if (!(hasUpperCase && hasLowerCase && (hasNumbers || hasSpecialChar))) {
+        setError("Password must contain uppercase, lowercase, and at least one number or special character");
+        setIsLoading(false);
+        return;
+      }
+
+      // Register user
+      const response = await fetch("/api/auth/register", {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify({
+          email,
+          password,
+          name: name.trim() || undefined, // Only send name if it's not empty
+        }),
+      });
+
+      const data = await response.json();
+
+      if (!response.ok) {
+        // Handle specific error cases
+        if (data.error === "User already exists") {
+          setError("An account with this email already exists. Please sign in instead.");
+        } else {
+          setError(data.error || "Registration failed. Please try again.");
+        }
+        return;
+      }
+
+      // Show success message
+      setSuccessMessage("Account created successfully! Signing you in...");
+
+      // Sign in the user
+      setTimeout(async () => {
+        const result = await signIn("credentials", {
+          email,
+          password,
+          callbackUrl: "/dashboard",
+          redirect: false,
+        });
+
+        if (result?.error) {
+          setError("Sign in failed after registration. Please try signing in manually.");
+        } else if (result?.ok) {
+          router.push("/dashboard");
+        }
+      }, 1500);
+    } catch (error) {
+      console.error("Sign up error:", error);
+      setError("An unexpected error occurred. Please try again later.");
     } finally {
       setIsLoading(false);
     }
@@ -83,7 +187,93 @@ export default function SignUpPage() {
               </div>
             )}
 
-            <div className="space-y-4">
+            {successMessage && (
+              <div className="mb-4 p-3 bg-green-50 border border-green-200 rounded-md">
+                <p className="text-sm text-green-600">{successMessage}</p>
+              </div>
+            )}
+
+            <div className="space-y-6">
+              <form onSubmit={handleEmailSignUp} className="space-y-4">
+                <div className="space-y-2">
+                  <Label htmlFor="name">
+                    <div className="flex items-center space-x-2">
+                      <User className="h-4 w-4 text-gray-500" />
+                      <span>Name (optional)</span>
+                    </div>
+                  </Label>
+                  <Input
+                    id="name"
+                    type="text"
+                    placeholder="Your name"
+                    value={name}
+                    onChange={(e) => setName(e.target.value)}
+                    className="w-full"
+                  />
+                </div>
+
+                <div className="space-y-2">
+                  <Label htmlFor="email">
+                    <div className="flex items-center space-x-2">
+                      <Mail className="h-4 w-4 text-gray-500" />
+                      <span>Email</span>
+                    </div>
+                  </Label>
+                  <Input
+                    id="email"
+                    type="email"
+                    placeholder="you@example.com"
+                    value={email}
+                    onChange={(e) => setEmail(e.target.value)}
+                    required
+                    className="w-full"
+                  />
+                </div>
+                
+                <div className="space-y-2">
+                  <Label htmlFor="password">
+                    <div className="flex items-center space-x-2">
+                      <Lock className="h-4 w-4 text-gray-500" />
+                      <span>Password</span>
+                    </div>
+                  </Label>
+                  <Input
+                    id="password"
+                    type="password"
+                    placeholder="••••••••"
+                    value={password}
+                    onChange={(e) => setPassword(e.target.value)}
+                    required
+                    className="w-full"
+                  />
+                  <p className="text-xs text-gray-500">Must be at least 8 characters</p>
+                </div>
+                
+                <Button 
+                  type="submit" 
+                  className="w-full" 
+                  disabled={isLoading}
+                >
+                  {isLoading ? (
+                    <div className="flex items-center space-x-2">
+                      <div className="w-4 h-4 border-2 border-white border-t-transparent rounded-full animate-spin"></div>
+                      <span>Creating account...</span>
+                    </div>
+                  ) : (
+                    <span>Sign up with Email</span>
+                  )}
+                </Button>
+              </form>
+
+              <div className="relative">
+                <div className="absolute inset-0 flex items-center">
+                  <div className="w-full border-t border-gray-300" />
+                </div>
+                <div className="relative flex justify-center text-sm">
+                  <span className="px-2 bg-white text-gray-500">Or</span>
+                </div>
+              </div>
+
               <Button
                 onClick={handleGoogleSignUp}
                 disabled={isLoading}

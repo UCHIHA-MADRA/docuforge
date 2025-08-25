@@ -5,11 +5,27 @@ import { signIn, getSession } from "next-auth/react";
 import { useRouter } from "next/navigation";
 import Link from "next/link";
 import { Button } from "@/components/ui/button";
-import { FileText, ArrowLeft } from "lucide-react";
+import { Input } from "@/components/ui/input";
+import { Label } from "@/components/ui/label";
+import { FileText, ArrowLeft, Mail, Lock } from "lucide-react";
+
+// Function to check if a user exists in the database
+async function checkUserExists(email: string): Promise<boolean> {
+  try {
+    const response = await fetch(`/api/auth/check-user?email=${encodeURIComponent(email)}`);
+    const data = await response.json();
+    return data.exists;
+  } catch (error) {
+    console.error("Error checking user existence:", error);
+    return false;
+  }
+}
 
 export default function SignInPage() {
   const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState("");
+  const [email, setEmail] = useState("");
+  const [password, setPassword] = useState("");
   const router = useRouter();
 
   const handleGoogleSignIn = async () => {
@@ -29,6 +45,68 @@ export default function SignInPage() {
       }
     } catch (error) {
       setError("An unexpected error occurred.");
+    } finally {
+      setIsLoading(false);
+    }
+  };
+
+  const handleCredentialsSignIn = async (e: React.FormEvent) => {
+    e.preventDefault();
+    try {
+      setIsLoading(true);
+      setError("");
+
+      // Email validation
+      if (!email) {
+        setError("Email is required");
+        setIsLoading(false);
+        return;
+      }
+
+      const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+      if (!emailRegex.test(email)) {
+        setError("Please enter a valid email address");
+        setIsLoading(false);
+        return;
+      }
+
+      // Password validation
+      if (!password) {
+        setError("Password is required");
+        setIsLoading(false);
+        return;
+      }
+
+      const result = await signIn("credentials", {
+        email,
+        password,
+        callbackUrl: "/dashboard",
+        redirect: false,
+      });
+
+      if (result?.error) {
+        // Handle specific error messages from the server if available
+        if (result.error === "CredentialsSignin") {
+          // Check if the user exists but password is wrong, or user doesn't exist
+          const userExists = await checkUserExists(email);
+          if (!userExists) {
+            setError("Please sign up first to access your account.");
+            // Wait for the alert to be visible before redirecting
+            setTimeout(() => {
+              router.push("/auth/signup");
+            }, 1500);
+            return;
+          }
+          setError("Invalid email or password");
+        } else {
+          setError(result.error || "Authentication failed");
+        }
+      } else if (result?.ok) {
+        router.push("/dashboard");
+      }
+    } catch (error) {
+      console.error("Sign in error:", error);
+      setError("An unexpected error occurred. Please try again later.");
     } finally {
       setIsLoading(false);
     }
@@ -67,7 +145,69 @@ export default function SignInPage() {
             </div>
           )}
 
-          <div className="space-y-4">
+          <div className="space-y-6">
+            <form onSubmit={handleCredentialsSignIn} className="space-y-4">
+              <div className="space-y-2">
+                <Label htmlFor="email">
+                  <div className="flex items-center space-x-2">
+                    <Mail className="h-4 w-4 text-gray-500" />
+                    <span>Email</span>
+                  </div>
+                </Label>
+                <Input
+                  id="email"
+                  type="email"
+                  placeholder="you@example.com"
+                  value={email}
+                  onChange={(e) => setEmail(e.target.value)}
+                  required
+                  className="w-full"
+                />
+              </div>
+              
+              <div className="space-y-2">
+                <Label htmlFor="password">
+                  <div className="flex items-center space-x-2">
+                    <Lock className="h-4 w-4 text-gray-500" />
+                    <span>Password</span>
+                  </div>
+                </Label>
+                <Input
+                  id="password"
+                  type="password"
+                  placeholder="••••••••"
+                  value={password}
+                  onChange={(e) => setPassword(e.target.value)}
+                  required
+                  className="w-full"
+                />
+              </div>
+              
+              <Button 
+                type="submit" 
+                className="w-full" 
+                disabled={isLoading}
+              >
+                {isLoading ? (
+                  <div className="flex items-center space-x-2">
+                    <div className="w-4 h-4 border-2 border-white border-t-transparent rounded-full animate-spin"></div>
+                    <span>Signing in...</span>
+                  </div>
+                ) : (
+                  <span>Sign in with Email</span>
+                )}
+              </Button>
+            </form>
+
+            <div className="relative">
+              <div className="absolute inset-0 flex items-center">
+                <div className="w-full border-t border-gray-300" />
+              </div>
+              <div className="relative flex justify-center text-sm">
+                <span className="px-2 bg-white text-gray-500">Or</span>
+              </div>
+            </div>
+
             <Button
               onClick={handleGoogleSignIn}
               disabled={isLoading}
@@ -103,18 +243,9 @@ export default function SignInPage() {
               )}
             </Button>
 
-            <div className="relative">
-              <div className="absolute inset-0 flex items-center">
-                <div className="w-full border-t border-gray-300" />
-              </div>
-              <div className="relative flex justify-center text-sm">
-                <span className="px-2 bg-white text-gray-500">Or</span>
-              </div>
-            </div>
-
             <div className="text-center">
               <p className="text-sm text-gray-600">
-                Do not have an account?{" "}
+                Don&apos;t have an account?{" "}
                 <Link
                   href="/auth/signup"
                   className="font-medium text-blue-600 hover:text-blue-500"

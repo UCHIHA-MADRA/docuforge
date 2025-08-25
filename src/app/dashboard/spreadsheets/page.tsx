@@ -1,10 +1,17 @@
-import { SpreadsheetEditor } from "@/components/spreadsheets/spreadsheet-editor";
-import { getCurrentUser } from "@/lib/auth/session";
-import { redirect } from "next/navigation";
+"use client";
 
-export default async function SpreadsheetsPage() {
-  const user = await getCurrentUser();
-  if (!user) redirect("/login");
+import { SpreadsheetEditor } from "@/components/spreadsheets/spreadsheet-editor";
+import { useAuth } from "@/lib/auth-context";
+import { useRouter } from "next/navigation";
+
+export default function SpreadsheetsPage() {
+  const { user } = useAuth();
+  const router = useRouter();
+
+  if (!user) {
+    router.push("/login");
+    return null;
+  }
 
   return (
     <div className="container mx-auto py-6">
